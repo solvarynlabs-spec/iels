@@ -2031,6 +2031,33 @@ function stampSVG(id = "stamp") {
   </svg>`;
 }
 
+// Scène de bureau dessinée (illustration originale) pour les cartes de l'équipe
+function devScene(i) {
+  const code = i === 0
+    ? [[0, 70], [12, 110], [12, 84], [24, 120], [12, 64], [0, 40]]
+    : [[0, 96], [12, 72], [24, 118], [24, 90], [12, 56], [0, 48]];
+  return `<svg viewBox="0 0 360 200" class="scene-svg" aria-hidden="true">
+    <rect width="360" height="200" fill="var(--dc)"/>
+    <circle cx="300" cy="40" r="70" fill="#fff" opacity=".06"/><circle cx="40" cy="180" r="90" fill="#fff" opacity=".05"/>
+    <g class="sc-window"><rect x="22" y="22" width="78" height="62" rx="4" fill="#fff" opacity=".12"/><path d="M61 22 V84 M22 53 H100" stroke="var(--dc)" stroke-width="4"/></g>
+    <rect x="0" y="160" width="360" height="40" fill="var(--dc2)"/>
+    <rect x="0" y="156" width="360" height="6" fill="#fff" opacity=".18"/>
+    <g class="sc-laptop">
+      <rect x="112" y="58" width="150" height="96" rx="8" fill="#1d1d1d"/>
+      <rect x="120" y="66" width="134" height="80" rx="3" fill="#0f0f0f"/>
+      ${code.map(([x, w], k) => `<rect class="code-ln" x="${128 + x}" y="${74 + k * 12}" width="${w * .9}" height="6" rx="3" fill="${k % 3 === 0 ? "#ff5c7a" : k % 3 === 1 ? "#ffffff" : "#8fb3dc"}" opacity=".9" style="animation-delay:${k * .45}s"/>`).join("")}
+      <rect class="cursor" x="${128 + code[5][0] + code[5][1] * .9 + 4}" y="134" width="5" height="8" fill="#fff"/>
+      <path d="M100 154 H274 L266 162 H108 Z" fill="#2a2a2a"/>
+    </g>
+    <g class="sc-mug"><rect x="284" y="128" width="26" height="30" rx="4" fill="#fff"/><path d="M310 134 q10 0 10 9 q0 9 -10 9" fill="none" stroke="#fff" stroke-width="4"/>
+      <path class="steam" d="M290 122 q-6 -9 0 -18 q6 -9 0 -18" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" opacity=".7"/>
+      <path class="steam s2" d="M302 122 q-6 -9 0 -18 q6 -9 0 -18" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" opacity=".7"/></g>
+    <g class="sc-flag"><rect x="40" y="104" width="3" height="54" fill="#fff" opacity=".85"/>
+      <g class="flag-cloth"><rect x="43" y="104" width="16" height="22" fill="#006233"/><rect x="59" y="104" width="16" height="22" fill="#fff"/><circle cx="59" cy="115" r="6" fill="#d21034"/><circle cx="61" cy="115" r="5" fill="#fff"/></g></g>
+    <g class="sc-plant"><path d="M330 158 l-6 -24 h24 l-6 24 z" fill="#fff" opacity=".9"/><path d="M336 134 q-14 -16 -4 -30 M336 134 q2 -22 16 -28 M336 134 q-4 -10 -18 -12" fill="none" stroke="#7bd88f" stroke-width="4" stroke-linecap="round"/></g>
+  </svg>`;
+}
+
 function viewAbout() {
   const exercises = LEVELS.reduce((n, l) => n + allItemsCount(l), 0);
   const share = encodeURIComponent(`IELTS Pro — free IELTS preparation, made in Aïn Beïda by Solvarynlabs: ${SITE_URL}`);
@@ -2093,15 +2120,16 @@ function viewAbout() {
     <section class="sec team" id="team" style="padding-top:0">
       <div class="sec-head center reveal"><span class="eyebrow">The team</span><h2>Meet the developers</h2><p>IELTS Pro is designed and developed by the Solvarynlabs team in Aïn Beïda, Algeria.</p></div>
       <div class="team-grid">
-        ${[["BENABOUD", "Roqia", "RB"], ["SALEM", "Abderrahim", "AS"]].map(([last, first, ini], i) => `
-        <article class="dev-card reveal" style="--d:${i * .15}s">
-          <div class="dev-avatar"><span>${ini}</span></div>
-          <div class="dev-info">
+        ${[["BENABOUD", "Roqia", "RB", "#e4002b", "#7a0017"], ["SALEM", "Abderrahim", "AS", "#141414", "#3a3a3a"]].map(([last, first, ini, c1, c2], i) => `
+        <article class="dev-card2 reveal" style="--d:${i * .15}s;--dc:${c1};--dc2:${c2}">
+          <div class="dev-scene">${devScene(i)}</div>
+          <div class="dev-medal"><span>${ini}</span></div>
+          <div class="dev-body">
             <span class="dev-role">Developer · ${STUDIO.name}</span>
             <h3><span class="dev-first">${first}</span> <span class="dev-last">${last}</span></h3>
-            <p>${STUDIO.city}, ${STUDIO.country}</p>
+            <p class="dev-place"><span class="flag">${flagDZ()}</span> ${STUDIO.city}, ${STUDIO.country}</p>
+            <div class="dev-line"><span>0${i + 1}</span><i></i><span>IELTS Pro</span></div>
           </div>
-          <span class="dev-num">0${i + 1}</span>
         </article>`).join("")}
       </div>
     </section>

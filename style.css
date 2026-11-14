@@ -1137,3 +1137,39 @@ button.crit:hover .crit-go, button.crit:focus-visible .crit-go { opacity: 1; tra
 .dev-info p { margin: 0; color: var(--muted); font-weight: 600; transition: color .45s; }
 .dev-num { position: absolute; right: 18px; bottom: -10px; font-size: 5.5rem; font-weight: 800; color: var(--red); opacity: .1; line-height: 1; pointer-events: none; }
 @media (max-width: 480px) { .dev-card { flex-direction: column; text-align: center; padding: 26px 20px; } .dev-avatar { width: 88px; height: 88px; font-size: 1.8rem; } }
+
+/* =========================================================
+   ÉQUIPE : cartes illustrées
+   ========================================================= */
+.dev-card2 { position: relative; background: var(--surface); box-shadow: var(--shadow); overflow: hidden; transition: transform .5s var(--ease), box-shadow .5s; }
+.dev-card2:hover { transform: translateY(-8px); box-shadow: 0 34px 60px -26px rgba(0, 0, 0, .55); }
+.dev-scene { position: relative; overflow: hidden; }
+.scene-svg { display: block; width: 100%; height: auto; transition: transform 1.2s var(--ease); }
+.dev-card2:hover .scene-svg { transform: scale(1.05); }
+.code-ln { transform-box: fill-box; transform-origin: left; animation: typeLine 4.5s steps(18) infinite; }
+@keyframes typeLine { 0% { transform: scaleX(0); } 35%, 85% { transform: scaleX(1); } 100% { transform: scaleX(1); opacity: .9; } }
+.cursor { animation: blink 1s steps(1) infinite; }
+.steam { animation: steamUp 2.6s ease-in-out infinite; }
+.steam.s2 { animation-delay: 1.2s; }
+@keyframes steamUp { 0% { transform: translateY(6px); opacity: 0; } 40% { opacity: .75; } 100% { transform: translateY(-10px); opacity: 0; } }
+.flag-cloth { transform-box: fill-box; transform-origin: left center; animation: cloth 2.4s ease-in-out infinite; }
+@keyframes cloth { 0%, 100% { transform: skewY(0); } 50% { transform: skewY(-6deg) scaleX(.94); } }
+.sc-plant { transform-box: fill-box; transform-origin: bottom center; animation: sway 4s ease-in-out infinite; }
+@keyframes sway { 0%, 100% { transform: rotate(0); } 50% { transform: rotate(-3deg); } }
+.dev-medal { position: absolute; left: 28px; top: calc(100% * 0 + 0px); }
+.dev-card2 .dev-medal { position: relative; margin: -52px 0 0 28px; width: 104px; height: 104px; border-radius: 50%; display: grid; place-items: center; background: var(--dc); color: #fff; font-size: 2.2rem; font-weight: 800; letter-spacing: .04em; box-shadow: 0 0 0 6px var(--surface), 0 16px 28px -12px rgba(0, 0, 0, .6); transition: transform .6s var(--ease); z-index: 2; }
+[data-theme="dark"] .dev-card2[style*="#141414"] .dev-medal { background: #fff; color: #141414; }
+.dev-card2 .dev-medal::after { content: ""; position: absolute; inset: -14px; border-radius: 50%; border: 2px dashed var(--dc); opacity: .45; animation: spin 16s linear infinite; }
+.dev-card2:hover .dev-medal { transform: rotate(-10deg) scale(1.06); }
+.dev-body { padding: 16px 28px 28px; }
+.dev-card2 .dev-role { font-size: .78rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--red); }
+.dev-card2 h3 { margin: 8px 0 6px; font-size: 1.9rem; line-height: 1.1; }
+.dev-card2 .dev-first { font-weight: 600; }
+.dev-card2 .dev-last { font-weight: 800; }
+.dev-place { display: flex; align-items: center; gap: 10px; color: var(--muted); font-weight: 600; margin: 0; }
+.dev-place .flag { width: 24px; height: 16px; flex: none; }
+.dev-line { display: flex; align-items: center; gap: 12px; margin-top: 20px; font-size: .8rem; font-weight: 800; letter-spacing: .1em; color: var(--muted); }
+.dev-line i { flex: 1; height: 3px; background: var(--line); position: relative; overflow: hidden; }
+.dev-line i::after { content: ""; position: absolute; inset: 0; background: var(--red); transform: scaleX(0); transform-origin: left; transition: transform 1s var(--ease); }
+.dev-card2.in .dev-line i::after { transform: scaleX(1); transition-delay: .5s; }
+@media (max-width: 480px) { .dev-card2 .dev-medal { width: 84px; height: 84px; font-size: 1.8rem; margin-top: -42px; } .dev-card2 h3 { font-size: 1.6rem; } }
