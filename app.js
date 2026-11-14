@@ -222,12 +222,12 @@ function toggleTheme() {
   save(); applyTheme(); updateTop();
 }
 
-const PAGE_TITLES = { dashboard: "Dashboard", grammar: "Grammar", vocab: "Vocabulary", reading: "Reading", listening: "Listening", writing: "Writing", speaking: "Speaking", progress: "My progress", toolkit: "Toolkit", books: "Collins books" };
+const PAGE_TITLES = { dashboard: "Dashboard", grammar: "Grammar", vocab: "Vocabulary", reading: "Reading", listening: "Listening", writing: "Writing", speaking: "Speaking", progress: "My progress", toolkit: "Toolkit", books: "Collins books", book: "My study book" };
 const brandHTML = `<a href="#/" class="brand"><span class="brand-logo">i</span><span>IELTS<b>Pro</b></span></a>`;
 
 function updateTop() {
   const [route, p] = location.hash.replace(/^#\/?/, "").split("/");
-  const isApp = !!S.level && (NEEDS_LEVEL.includes(route) || route === "books");
+  const isApp = !!S.level && (NEEDS_LEVEL.includes(route) || route === "books" || route === "book");
   document.body.classList.toggle("appmode", isApp);
   document.body.classList.toggle("public", !isApp);
   const dark = document.documentElement.dataset.theme === "dark";
@@ -237,15 +237,16 @@ function updateTop() {
     const L = lvl();
     const valid = MODULES.filter(m => validated(m.key)).length;
     const link = (r, icon, name, key, color) => {
-      const active = r === route;
+      const active = r === route || (r === "book" && route === "book");
       const n = key ? itemsOf(key).length : 0, d = key ? doneCount(key) : 0;
-      return `<a href="#/${r}" class="side-link ${active ? "active" : ""}" style="--mc:${color || "var(--accent)"}"><span class="side-ic">${ic(icon)}</span><span>${name}</span>${key ? `<span class="dot ${validated(key) ? "ok" : d ? "mid" : ""}">${d}/${n}</span>` : ""}</a>`;
+      return `<a href="#/${r === "book" ? "book/" + S.level : r}" class="side-link ${active ? "active" : ""}" style="--mc:${color || "var(--accent)"}"><span class="side-ic">${ic(icon)}</span><span>${name}</span>${key ? `<span class="dot ${validated(key) ? "ok" : d ? "mid" : ""}">${d}/${n}</span>` : ""}</a>`;
     };
     $("#sidebar").innerHTML = `${brandHTML}
       <div class="side-label">General</div>
       ${link("dashboard", "grid", "Dashboard", null, "#8b5cf6")}
       ${link("progress", "chart", "My progress", null, "#10b981")}
       ${link("toolkit", "layers", "Toolkit", null, "#f43f5e")}
+      ${link("book", "open", "My study book", null, "#e4002b")}
       ${link("books", "book", "Collins books", null, "#e4002b")}
       <div class="side-label">${L.id} modules</div>
       ${MODULES.map(m => link(m.route, m.icon, m.name, m.key, m.color)).join("")}
@@ -907,7 +908,7 @@ function viewTest() {
   $("#startTest").onclick = () => {
     T = { i: 0, ans: [], qs: PLACEMENT.questions.map(prep), start: Date.now(), sel: undefined };
     renderTestQ();
-    const iv = setInterval(() => { const e = $("#elapsed"); if (e) e.textContent = fmt((Date.now() - T.start) / 1000); }, 1000);
+    const iv = setInterval(() => { const e = $("#elapsed"); if (e && T) e.textContent = fmt((Date.now() - T.start) / 1000); }, 1000);
     onLeave(() => clearInterval(iv));
   };
 }
@@ -992,6 +993,7 @@ function viewResult() {
           Strongest skill: <b>${SKILL_NAMES[sorted[0][0]]}</b> · To work on: <b>${SKILL_NAMES[sorted[sorted.length - 1][0]]}</b>.</p>
           <div class="row" style="margin-top:16px">
             <button class="btn btn-primary btn-lg" id="go">Start my ${L.id} course ${ic("arrow", "arrow")}</button>
+            <a class="btn btn-ghost btn-lg" href="#/book/${L.id}" id="goBook">Read my free ${L.id} book</a>
           </div>
         </div>
       </div>
@@ -1013,6 +1015,7 @@ function viewResult() {
     </div></div>`;
   const pick = id => { S.level = id; save(); confetti(); location.hash = "#/dashboard"; };
   $("#go").onclick = () => pick(L.id);
+  $("#goBook").onclick = () => { S.level = L.id; save(); };
   $$("[data-pick]").forEach(b => b.onclick = () => pick(b.dataset.pick));
   setTimeout(() => {
     const fg = $("#ringFg"); if (fg) fg.style.strokeDashoffset = C * (1 - P.band / 9);
@@ -1140,7 +1143,7 @@ function viewDashboard() {
   app.innerHTML = `<div class="page-enter">
     <div class="welcome">
       <div>${flagPair("sm")}<span class="eyebrow" style="margin-left:10px">${dateStr}</span><h1>${hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening"}, ready to study?</h1></div>
-      <div class="row"><a class="btn btn-ghost" href="#/toolkit">${ic("layers", "sm")} Toolkit</a>
+      <div class="row"><a class="btn btn-ghost" href="#/book/${L.id}">My ${L.id} study book</a><a class="btn btn-ghost" href="#/toolkit">${ic("layers", "sm")} Toolkit</a>
         ${nextModule ? `<a class="btn btn-primary" href="#/${nextModule.route}/${firstTodo(nextModule.key)}">Continue: ${nextModule.name} ${ic("arrow", "sm arrow")}</a>` : ""}</div>
     </div>
 
@@ -1785,6 +1788,9 @@ function viewBooks() {
   app.innerHTML = `<div class="${S.level ? "" : "wrap"}" style="${S.level ? "" : "padding-top:30px;padding-bottom:60px"}">
     ${pageHero("vocab", "Revise with books", "Collins English for IELTS", "A guide to the Collins books for IELTS: which one to choose for your level, what each covers, and how to use it with the exercises on this site.",
       `<div class="hero-timer"><div class="small">My reading list</div><span class="timer">${done}/${owned || 0}</span></div>`)}
+    <div class="free-books"><div class="sec-head" style="margin-bottom:20px"><span class="eyebrow">Free</span><h2>IELTS Pro study books — free for every level</h2><p>Read online or save as PDF. Your placement test tells you which one to start with.</p></div>
+      <div class="fb-grid">${LEVELS.map(l => `<a class="fb-card" href="#/book/${l.id}" style="--bc:${BOOK_COLORS[l.id]}"><div class="b3-cover small"><span>IELTS Pro · free</span><b>${l.id}</b><em>${l.name}</em></div><div><b>${l.id} study book</b><span>Band ${l.band} · ${S.placement && S.placement.level === l.id ? "recommended for you" : buildBook(l).length + " chapters"}</span></div></a>`).join("")}</div></div>
+    <h2 class="paid-title">Collins English for IELTS <span>(paid books, optional)</span></h2>
     <div class="books-intro">
       <p>These books are sold by the publisher HarperCollins and are not included on this site. Use the links to see each book on <b>collins.co.uk</b>. Mark the ones you have so you can track your progress.</p>
       <div class="book-progress"><div class="row small" style="font-weight:700"><span>${owned} book${owned === 1 ? "" : "s"} in my list</span><div class="spacer"></div><span>${done} finished</span></div><div class="bar"><div style="width:${owned ? done / owned * 100 : 0}%;background:var(--red)"></div></div></div>
@@ -1835,12 +1841,156 @@ function viewBooks() {
   $$("[data-go-calc]", app).forEach(b => b.onclick = () => { location.hash = S.level ? "#/toolkit/exam" : "#/"; setTimeout(() => document.getElementById("score")?.scrollIntoView({ behavior: "smooth" }), 400); });
 }
 
+
+/* ---------------- Livres de révision gratuits (IELTS Pro) ---------------- */
+const FREE_RESOURCES = [
+  ["IELTS — official preparation resources", "Free sample questions and practice materials from the IELTS partners.", "https://ielts.org/take-a-test/preparation-resources"],
+  ["IDP IELTS — Prepare", "Free practice tests, videos and preparation tips.", "https://ielts.idp.com/prepare"],
+  ["BBC Learning English — 6 Minute English", "Short British English podcasts with transcripts, ideal for Listening.", "https://www.bbc.co.uk/learningenglish/english/features/6-minute-english"]
+];
+const BOOK_COLORS = { A2: "#0f766e", B1: "#1d4ed8", B2: "#c2410c", C1: "#7c3aed" };
+
+function buildBook(L) {
+  const ch = [];
+  const answerBox = (txt) => `<details class="ans-box"><summary>Show answer</summary><div>${txt}</div></details>`;
+  const quizBlock = (qs) => `<ol class="book-ex">${qs.map(q => `<li><p>${esc(q.q)}</p><div class="opts">${q.o.map((o, i) => `<span>${"abcd"[i]}) ${esc(o)}</span>`).join("")}</div>${answerBox(`<b>${esc(q.o[q.a])}</b>${q.e ? " — " + esc(q.e) : ""}`)}</li>`).join("")}</ol>`;
+  // NB : dans les données, la bonne réponse est toujours la 1re option (elles sont mélangées à l'écran) → on mélange ici de façon stable.
+  const shuffled = qs => qs.map((q, k) => { if (q.noShuffle) return q; const order = q.o.map((_, i) => i); const rot = (k * 3 + 1) % order.length; const o = order.slice(rot).concat(order.slice(0, rot)); return { ...q, o: o.map(i => q.o[i]), a: o.indexOf(q.a) }; });
+
+  ch.push({ kicker: "Welcome", title: `Your ${L.id} study book`, html: `
+    <p class="lead-p">This free book goes with the <b>${L.id} — ${L.name}</b> course on IELTS Pro (band ${L.band}). Your target is <b>band ${L.target.toFixed(1)}</b>.</p>
+    <p>${esc(L.goal)}</p>
+    <h3>How to use this book</h3>
+    <ol><li>Read one chapter a day, in order.</li><li>Do the exercises <b>before</b> opening the answers.</li><li>After each chapter, do the matching exercise on the site to check your progress.</li><li>Keep a notebook of new words and your own mistakes.</li></ol>
+    <h3>Your 7-day plan</h3>
+    <ul class="plan-list">${PLAN.map(p => `<li><b>${p.day}</b> ${esc(p.txt)}</li>`).join("")}</ul>
+    <h3>Key advice for your level</h3>
+    <ul>${L.tips.map(t => `<li>${esc(t)}</li>`).join("")}</ul>` });
+
+  L.grammar.forEach((g, i) => ch.push({ kicker: `Grammar ${i + 1}`, title: g.title, html: `
+    ${g.html}
+    <h3>Examples</h3>${g.examples.map(e => `<p class="ex-line">${esc(e)}</p>`).join("")}
+    <div class="book-warn"><b>Common mistake:</b> ${esc(g.tip)}</div>
+    <h3>Exercises</h3>${quizBlock(shuffled(g.quiz))}` }));
+
+  L.vocab.forEach((set, i) => ch.push({ kicker: `Vocabulary ${i + 1}`, title: set.title, html: `
+    <p>Learn each word with its example. Cover the definition and test yourself, then write your own sentence.</p>
+    <div class="word-list">${set.words.map(v => `<div class="wl"><b>${esc(v.w)}</b><span class="fr">${esc(v.fr)}</span><p>${esc(v.d)}</p><em>${esc(v.ex)}</em></div>`).join("")}</div>
+    <h3>Check yourself</h3>
+    <ol class="book-ex">${set.words.slice(0, 6).map(v => `<li><p>Which word means: “${esc(v.d)}”?</p>${answerBox(`<b>${esc(v.w)}</b> — ${esc(v.ex)}`)}</li>`).join("")}</ol>` }));
+
+  const R = L.reading[0];
+  ch.push({ kicker: "Reading", title: "Reading strategies", html: `
+    <h3>The method</h3>
+    <ol><li><b>Read the questions first</b> and underline the key words.</li><li><b>Skim</b> the passage in 1–2 minutes to understand each paragraph's main idea.</li><li><b>Scan</b> for names, numbers and paraphrases of your key words.</li><li>For <b>True / False / Not Given</b>: False = the text says the opposite; Not Given = the text does not say.</li><li>Keep to about <b>20 minutes per passage</b>.</li></ol>
+    <h3>Practice passage: ${esc(R.title)}</h3>
+    <div class="book-passage">${paras(R.text)}</div>
+    <h3>Questions</h3>${quizBlock(shuffled(R.questions))}` });
+
+  const Li = L.listening[0];
+  ch.push({ kicker: "Listening", title: "Listening strategies", html: `
+    <h3>The method</h3>
+    <ol><li>Use the reading time to <b>predict</b> the type of answer: a number, a name, a place?</li><li>Listen for <b>paraphrases</b>, not the exact words of the question.</li><li>Watch out for <b>corrections</b>: “sorry, I mean…” — the last information is the answer.</li><li>Check <b>spelling and plurals</b>: a wrong spelling is a wrong answer.</li></ol>
+    <h3>Transcript practice: ${esc(Li.title)}</h3>
+    <p>Play this recording on the site first. Then read the transcript and underline the answers.</p>
+    <div class="book-passage">${esc(Li.script)}</div>
+    <h3>Questions</h3>${quizBlock(shuffled(Li.questions))}` });
+
+  ch.push({ kicker: "Writing", title: "Writing: tasks and model answers", html: `
+    <p>Task 1 (about 20 minutes, 150+ words) describes data. Task 2 (about 40 minutes, 250+ words) is an essay and counts <b>double</b>.</p>
+    ${L.writing.map((w, i) => `<h3>${i + 1}. ${esc(w.type)}</h3><p class="book-prompt">${esc(w.prompt)}</p>
+      <ul>${w.tips.map(t => `<li>${esc(t)}</li>`).join("")}</ul>
+      <p><b>Try it yourself first</b>, then compare with the model answer.</p>
+      <details class="ans-box"><summary>Show model answer</summary><div class="model-answer">${esc(w.model)}</div></details>`).join("")}` });
+
+  const SP = L.speaking;
+  ch.push({ kicker: "Speaking", title: "Speaking: questions and cue cards", html: `
+    <h3>Part 1 — about you (4–5 minutes)</h3><ul>${SP.part1.map(q => `<li>${esc(q)}</li>`).join("")}</ul>
+    <h3>Part 2 — cue cards (1 minute to prepare, 2 minutes to speak)</h3>
+    ${SP.cards.map(c => `<div class="book-cue"><b>${esc(c.topic)}</b><p>You should say:</p><ul>${c.points.map(p => `<li>${esc(p)}</li>`).join("")}</ul></div>`).join("")}
+    <h3>Part 3 — discussion</h3><ul>${SP.part3.map(q => `<li>${esc(q)}</li>`).join("")}</ul>
+    <h3>Useful phrases</h3>
+    ${TOOLKIT.find(t => t.id === "speaking").groups.map(g => `<p><b>${esc(g.name)}:</b> ${g.items.map(x => esc(x[0])).join(" · ")}</p>`).join("")}` });
+
+  const errs = TOOLKIT.find(t => t.id === "errors");
+  ch.push({ kicker: "Accuracy", title: "Common mistakes to avoid", html: `
+    <p>These mistakes appear again and again in IELTS answers. Learn the correct form and check your own writing for them.</p>
+    ${errs.groups.map(g => `<h3>${esc(g.name)}</h3><ul>${g.items.map(([a, b]) => `<li>${esc(a)}${b ? ` <span class="muted">(${esc(b)})</span>` : ""}</li>`).join("")}</ul>`).join("")}
+    <h3>Useful phrases for Writing</h3>
+    ${["task1", "task2"].map(id => TOOLKIT.find(t => t.id === id)).map(t => `<p><b>${esc(t.title)}:</b> ${t.groups.map(g => g.items.slice(0, 2).map(x => esc(x[0])).join(" · ")).join(" · ")}</p>`).join("")}` });
+
+  ch.push({ kicker: "Next steps", title: "Free official resources", html: `
+    <p>When you finish this book, take a full practice test in exam conditions. These resources are <b>free</b>:</p>
+    <div class="res-list">${FREE_RESOURCES.map(([t, d, u]) => `<a class="res" href="${u}" target="_blank" rel="noopener"><b>${esc(t)}</b><span>${esc(d)}</span><small>${u.replace(/^https:\/\//, "")}</small></a>`).join("")}</div>
+    <p>Then come back to IELTS Pro, finish every exercise of your level at 70% and move up to the next level.</p>` });
+  return ch;
+}
+
+function viewBook(p) {
+  const parts = (location.hash.replace(/^#\/?/, "").split("/"));
+  const L = LEVELS.find(l => l.id === (parts[1] || p)) || lvl() || LEVELS[0];
+  const chapters = buildBook(L);
+  S.bookRead = S.bookRead || {}; S.bookRead[L.id] = S.bookRead[L.id] || [];
+  let cur = Math.min(chapters.length - 1, Math.max(0, parseInt(parts[2], 10) || S.bookRead[L.id].lastPage || 0));
+  const color = BOOK_COLORS[L.id];
+  app.innerHTML = `<div class="${S.level ? "" : "wrap"}" style="${S.level ? "" : "padding-top:30px;padding-bottom:60px"}">
+    <div class="book-top" style="--bc:${color}">
+      <div class="book-3d"><div class="b3-cover"><span>IELTS Pro · free study book</span><b>${L.id}</b><em>${L.name}</em><small>Band ${L.band} → ${L.target.toFixed(1)}</small></div></div>
+      <div>
+        <span class="eyebrow">Free study book</span><h1 class="book-h1">${L.id} — ${L.name}</h1>
+        <p class="muted">${chapters.length} chapters · grammar, vocabulary, the four skills, model answers and an answer key. Free to read online or save as PDF.</p>
+        <div class="bar" style="max-width:420px;margin:14px 0 6px"><div id="bookBar" style="background:var(--red)"></div></div>
+        <div class="small muted" id="bookProg"></div>
+        <div class="row" style="margin-top:16px">
+          <button class="btn btn-primary" id="bkPdf">${ic("arrow", "sm")} Save as PDF</button>
+          <div class="lvl-switch-books">${LEVELS.map(l => `<a href="#/book/${l.id}" class="${l.id === L.id ? "on" : ""}">${l.id}</a>`).join("")}</div>
+        </div>
+      </div>
+    </div>
+    <div class="reader">
+      <nav class="toc" aria-label="Chapters">${chapters.map((c, i) => `<button data-ch="${i}"><span class="tn">${String(i + 1).padStart(2, "0")}</span><span><small>${esc(c.kicker)}</small>${esc(c.title)}</span><i class="tick-dot"></i></button>`).join("")}</nav>
+      <div class="sheet-wrap">
+        <article class="sheet" id="sheet"></article>
+        <div class="sheet-nav"><button class="btn btn-ghost" id="bkPrev">← Previous</button><span class="small muted" id="bkCount"></span><button class="btn btn-primary" id="bkNext">Next →</button></div>
+      </div>
+    </div>
+    <div id="printBook" class="print-only"></div>
+  </div>`;
+  const show = (i, dir = 0) => {
+    cur = i; const c = chapters[i];
+    if (!S.bookRead[L.id].includes(i)) S.bookRead[L.id].push(i);
+    S.bookRead[L.id].lastPage = i; save();
+    const sh = $("#sheet"); sh.className = "sheet " + (dir > 0 ? "turn-next" : dir < 0 ? "turn-prev" : "turn-in");
+    sh.innerHTML = `<div class="sheet-kicker">Chapter ${i + 1} · ${esc(c.kicker)}</div><h2>${esc(c.title)}</h2>${c.html}<div class="sheet-foot">${L.id} study book · page ${i + 1}</div>`;
+    $$(".toc button").forEach((b, k) => { b.classList.toggle("active", k === i); b.classList.toggle("read", S.bookRead[L.id].includes(k)); });
+    $("#bkPrev").disabled = i === 0;
+    $("#bkNext").textContent = i === chapters.length - 1 ? "Practise on the site →" : "Next →";
+    $("#bkCount").textContent = `${i + 1} / ${chapters.length}`;
+    const n = S.bookRead[L.id].length; $("#bookBar").style.width = (n / chapters.length * 100) + "%";
+    $("#bookProg").textContent = `${n} of ${chapters.length} chapters read`;
+    history.replaceState(null, "", `#/book/${L.id}/${i}`);
+  };
+  $$(".toc button").forEach(b => b.onclick = () => { show(+b.dataset.ch, +b.dataset.ch > cur ? 1 : -1); $(".sheet-wrap").scrollIntoView({ behavior: "smooth", block: "start" }); });
+  $("#bkPrev").onclick = () => { if (cur > 0) { show(cur - 1, -1); $(".sheet-wrap").scrollIntoView({ behavior: "smooth", block: "start" }); } };
+  $("#bkNext").onclick = () => { if (cur < chapters.length - 1) { show(cur + 1, 1); $(".sheet-wrap").scrollIntoView({ behavior: "smooth", block: "start" }); } else { if (!S.level) { S.level = L.id; save(); } location.hash = "#/dashboard"; } };
+  const key = e => { if (e.target.matches("input,textarea")) return; if (e.key === "ArrowRight") $("#bkNext").click(); if (e.key === "ArrowLeft" && cur > 0) $("#bkPrev").click(); };
+  document.addEventListener("keydown", key); onLeave(() => document.removeEventListener("keydown", key));
+  $("#bkPdf").onclick = () => {
+    $("#printBook").innerHTML = `<div class="pb-cover" style="--bc:${color}"><span>IELTS Pro · free study book</span><h1>${L.id} — ${L.name}</h1><p>Band ${L.band} → target ${L.target.toFixed(1)}</p></div>` +
+      chapters.map((c, i) => `<section class="pb-ch"><div class="sheet-kicker">Chapter ${i + 1} · ${esc(c.kicker)}</div><h2>${esc(c.title)}</h2>${c.html}</section>`).join("");
+    $$("#printBook details").forEach(d => d.open = true);
+    toast("Choose “Save as PDF” in the print window");
+    setTimeout(() => window.print(), 300);
+  };
+  show(cur);
+}
+
 /* =========================================================
    ROUTEUR
    ========================================================= */
 const ROUTES = {
   "": viewHome, test: viewTest, result: viewResult,
-  dashboard: viewDashboard, grammar: viewGrammar, vocab: p => viewVocab(p, "cards"), toolkit: viewToolkit, books: viewBooks,
+  dashboard: viewDashboard, grammar: viewGrammar, vocab: p => viewVocab(p, "cards"), toolkit: viewToolkit, books: viewBooks, book: viewBook,
   reading: viewReading, listening: viewListening, writing: viewWriting, speaking: p => viewSpeaking(p, "2"), progress: viewProgress
 };
 const NEEDS_LEVEL = ["toolkit", "dashboard", "grammar", "vocab", "reading", "listening", "writing", "speaking", "progress"];
