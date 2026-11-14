@@ -2090,6 +2090,22 @@ function viewAbout() {
       </div>
     </section>
 
+    <section class="sec team" id="team" style="padding-top:0">
+      <div class="sec-head center reveal"><span class="eyebrow">The team</span><h2>Meet the developers</h2><p>IELTS Pro is designed and developed by the Solvarynlabs team in Aïn Beïda, Algeria.</p></div>
+      <div class="team-grid">
+        ${[["BENABOUD", "Roqia", "RB"], ["SALEM", "Abderrahim", "AS"]].map(([last, first, ini], i) => `
+        <article class="dev-card reveal" style="--d:${i * .15}s">
+          <div class="dev-avatar"><span>${ini}</span></div>
+          <div class="dev-info">
+            <span class="dev-role">Developer · ${STUDIO.name}</span>
+            <h3><span class="dev-first">${first}</span> <span class="dev-last">${last}</span></h3>
+            <p>${STUDIO.city}, ${STUDIO.country}</p>
+          </div>
+          <span class="dev-num">0${i + 1}</span>
+        </article>`).join("")}
+      </div>
+    </section>
+
     <section class="sec ad-share" id="share" style="padding-top:0">
       <div class="ad-poster-wrap reveal zoom"><canvas id="poster" width="1080" height="1080" aria-label="IELTS Pro poster"></canvas></div>
       <div class="reveal">

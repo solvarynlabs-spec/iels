@@ -1116,3 +1116,24 @@ button.crit:hover .crit-go, button.crit:focus-visible .crit-go { opacity: 1; tra
 .pin-tag rect { fill: var(--red); }
 .pin-tag text { fill: #fff; font-size: 13px; font-weight: 800; }
 .map-src { text-align: right; color: var(--muted); font-size: .75rem; margin: 6px 0 0; }
+
+/* =========================================================
+   ÉQUIPE (page About)
+   ========================================================= */
+.team-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; max-width: 980px; margin: 0 auto; }
+@media (max-width: 760px) { .team-grid { grid-template-columns: 1fr; } }
+.dev-card { position: relative; overflow: hidden; z-index: 0; display: flex; align-items: center; gap: 24px; padding: 30px; background: var(--surface); border-top: 5px solid var(--red); box-shadow: var(--shadow); transition: color .45s, transform .45s var(--ease); }
+.dev-card::before { content: ""; position: absolute; inset: 0; background: #141414; transform: translateY(101%); transition: transform .55s var(--ease); z-index: -1; }
+.dev-card:hover { color: #fff; transform: translateY(-6px); }
+.dev-card:hover::before { transform: none; }
+.dev-card:hover h3, .dev-card:hover p { color: #fff; }
+.dev-avatar { position: relative; flex: none; width: 104px; height: 104px; border-radius: 50%; display: grid; place-items: center; background: var(--red); color: #fff; font-size: 2.2rem; font-weight: 800; letter-spacing: .04em; box-shadow: 0 0 0 5px var(--surface), 0 0 0 7px var(--red); transition: transform .6s var(--ease), box-shadow .45s; }
+.dev-avatar::after { content: ""; position: absolute; inset: -12px; border-radius: 50%; border: 2px dashed var(--red); opacity: .5; animation: spin 18s linear infinite; }
+.dev-card:hover .dev-avatar { transform: rotate(-8deg) scale(1.05); box-shadow: 0 0 0 5px #141414, 0 0 0 7px var(--red); }
+.dev-role { font-size: .78rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--red); }
+.dev-info h3 { margin: 8px 0 4px; font-size: 1.7rem; line-height: 1.15; transition: color .45s; }
+.dev-first { font-weight: 600; }
+.dev-last { font-weight: 800; letter-spacing: .02em; }
+.dev-info p { margin: 0; color: var(--muted); font-weight: 600; transition: color .45s; }
+.dev-num { position: absolute; right: 18px; bottom: -10px; font-size: 5.5rem; font-weight: 800; color: var(--red); opacity: .1; line-height: 1; pointer-events: none; }
+@media (max-width: 480px) { .dev-card { flex-direction: column; text-align: center; padding: 26px 20px; } .dev-avatar { width: 88px; height: 88px; font-size: 1.8rem; } }
