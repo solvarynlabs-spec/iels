@@ -222,12 +222,12 @@ function toggleTheme() {
   save(); applyTheme(); updateTop();
 }
 
-const PAGE_TITLES = { dashboard: "Dashboard", grammar: "Grammar", vocab: "Vocabulary", reading: "Reading", listening: "Listening", writing: "Writing", speaking: "Speaking", progress: "My progress", toolkit: "Toolkit" };
+const PAGE_TITLES = { dashboard: "Dashboard", grammar: "Grammar", vocab: "Vocabulary", reading: "Reading", listening: "Listening", writing: "Writing", speaking: "Speaking", progress: "My progress", toolkit: "Toolkit", books: "Collins books" };
 const brandHTML = `<a href="#/" class="brand"><span class="brand-logo">i</span><span>IELTS<b>Pro</b></span></a>`;
 
 function updateTop() {
   const [route, p] = location.hash.replace(/^#\/?/, "").split("/");
-  const isApp = !!S.level && NEEDS_LEVEL.includes(route);
+  const isApp = !!S.level && (NEEDS_LEVEL.includes(route) || route === "books");
   document.body.classList.toggle("appmode", isApp);
   document.body.classList.toggle("public", !isApp);
   const dark = document.documentElement.dataset.theme === "dark";
@@ -246,6 +246,7 @@ function updateTop() {
       ${link("dashboard", "grid", "Dashboard", null, "#8b5cf6")}
       ${link("progress", "chart", "My progress", null, "#10b981")}
       ${link("toolkit", "layers", "Toolkit", null, "#f43f5e")}
+      ${link("books", "book", "Collins books", null, "#e4002b")}
       <div class="side-label">${L.id} modules</div>
       ${MODULES.map(m => link(m.route, m.icon, m.name, m.key, m.color)).join("")}
       <div class="side-level">
@@ -265,7 +266,7 @@ function updateTop() {
     $("#sidebar").innerHTML = "";
     const onHome = route === "";
     $("#topbar").innerHTML = `${brandHTML}
-      <nav class="pubnav">${onHome ? [["format", "The exam"], ["score", "Score calculator"], ["criteres", "Criteria"], ["modules", "Practice"], ["faq", "FAQ"]].map(([id, n]) => `<button data-scroll="${id}">${n}</button>`).join("") : `<button data-go="">Home</button>`}</nav>
+      <nav class="pubnav">${onHome ? [["format", "The exam"], ["score", "Score calculator"], ["criteres", "Criteria"], ["modules", "Practice"], ["faq", "FAQ"]].map(([id, n]) => `<button data-scroll="${id}">${n}</button>`).join("") : `<button data-go="">Home</button>`}<button data-go="books">Books</button></nav>
       <div class="top-actions">${flagPair("sm")}${themeBtn}
         ${S.level ? `<a class="btn btn-dark btn-sm" href="#/dashboard">My dashboard ${ic("arrow", "sm arrow")}</a>` : route === "test" ? "" : `<a class="btn btn-primary btn-sm" href="#/test">Take the test ${ic("arrow", "sm arrow")}</a>`}
       </div>`;
@@ -761,6 +762,12 @@ function viewHome() {
           <h3>${l.name}</h3><p>${l.goal}</p>
           <div class="lc-count">Target: band ${l.target.toFixed(1)}</div></div>`).join("")}
       </div>
+    </section>
+
+    <section class="books-teaser reveal">
+      <div><span class="eyebrow">Revise with books</span><h2>Collins English for IELTS</h2><p>Which Collins book to choose for your band, what each one covers, and how to combine it with the exercises on this site.</p>
+        <a class="btn btn-primary" href="#/books">See the Collins books ${ic("arrow", "arrow")}</a></div>
+      <div class="bt-stack">${BOOKS.filter((b, i) => [0, 4, 6, 10].includes(i)).map((b, i) => `<div class="mini-cover" style="--bc:${b.color};--i:${i}"><span>${esc(b.series)}</span><b>${esc(b.title)}</b></div>`).join("")}</div>
     </section>
 
     <section class="sec" id="faq" style="padding-top:0">
@@ -1720,12 +1727,120 @@ function openCriterion(k, i) {
   $("#cPractice", m).onclick = () => { closeModal(); startModule(k); };
 }
 
+
+/* ---------------- Livres Collins English for IELTS ---------------- */
+const COLLINS_SEARCH = q => `https://collins.co.uk/search?q=${encodeURIComponent(q)}`;
+const BOOKS = [
+  { id: "gr-reading", series: "Get Ready for IELTS", title: "Get Ready for IELTS Reading", tier: "start", band: "IELTS 4+ (A2+)", skill: "reading", color: "#0f766e",
+    url: "https://collins.co.uk/products/9780007460649",
+    about: "Builds the basic reading skills you need before IELTS-style passages: skimming, scanning and understanding the main question types step by step.",
+    how: "Do one unit, then a Reading passage on this site at A2 or B1 level to apply the same strategy." },
+  { id: "gr-listening", series: "Get Ready for IELTS", title: "Get Ready for IELTS Listening", tier: "start", band: "IELTS 4+ (A2+)", skill: "listening", color: "#0e7490",
+    url: "https://collins.co.uk/products/9780008765422",
+    about: "Comes with audio and trains you on everyday situations, numbers, spelling and short talks, for learners starting from around band 3–4.",
+    how: "After each unit, practise a recording on this site at 0.8× speed, then again at 1×." },
+  { id: "gr-writing", series: "Get Ready for IELTS", title: "Get Ready for IELTS Writing", tier: "start", band: "IELTS 4+ (A2+)", skill: "writing", color: "#b45309",
+    url: COLLINS_SEARCH("Get Ready for IELTS Writing"),
+    about: "Introduces Task 1 and Task 2 with simple models: organising paragraphs, describing a chart and giving a clear opinion.",
+    how: "Write the matching Task on this site and use the automatic analysis to check length, paragraphs and linking words." },
+  { id: "gr-speaking", series: "Get Ready for IELTS", title: "Get Ready for IELTS Speaking", tier: "start", band: "IELTS 4+ (A2+)", skill: "speaking", color: "#7c3aed",
+    url: "https://collins.co.uk/products/9780008765446",
+    about: "Comes with audio and helps you answer Part 1 questions, prepare a Part 2 talk and gain confidence speaking for longer.",
+    how: "Record yourself on this site's Speaking module and compare your speed and fillers week by week." },
+  { id: "sk-reading", series: "Collins English for IELTS", title: "Reading for IELTS", tier: "skills", band: "IELTS 5–6+ (B1+)", skill: "reading", color: "#047857",
+    url: "https://collins.co.uk/products/9780008367503",
+    about: "For learners whose reading is holding back their score: exam strategies, all the question types and timed practice on academic texts.",
+    how: "Use it alongside the B1 and B2 Reading passages on this site and keep to 20 minutes per passage." },
+  { id: "sk-listening", series: "Collins English for IELTS", title: "Listening for IELTS", tier: "skills", band: "IELTS 5–6+ (B1+)", skill: "listening", color: "#be185d",
+    url: COLLINS_SEARCH("Listening for IELTS"),
+    about: "Covers the four parts of the Listening test, with audio and strategies for predicting answers and avoiding distractors.",
+    how: "Pair each unit with a B1/B2 recording on this site, listening only once at 1× speed." },
+  { id: "sk-writing", series: "Collins English for IELTS", title: "Writing for IELTS", tier: "skills", band: "IELTS 5–6+ (B1+)", skill: "writing", color: "#c2410c",
+    url: "https://collins.co.uk/products/9780008367534",
+    about: "For Academic candidates at band 5–5.5 aiming for 6 or higher: Task 1 data description and Task 2 essay structure, with model answers.",
+    how: "After each unit, write the same type of task here and compare with the model answer on this site." },
+  { id: "sk-speaking", series: "Collins English for IELTS", title: "Speaking for IELTS", tier: "skills", band: "IELTS 5–6+ (B1+)", skill: "speaking", color: "#6d28d9",
+    url: COLLINS_SEARCH("Speaking for IELTS"),
+    about: "Topic-based units with audio for all three parts of the Speaking test, focusing on fluency and developing answers.",
+    how: "Practise the same topic with a cue card on this site and check your transcript for repeated words." },
+  { id: "sk-vocab", series: "Collins English for IELTS", title: "IELTS Vocabulary", tier: "skills", band: "IELTS 5–6+ (B1+)", skill: "vocab", color: "#a16207",
+    url: "https://collins.co.uk/products/9780007456826",
+    about: "Topic vocabulary for the exam, with answers and audio, aimed at learners around band 5–5.5 who want band 6 or higher.",
+    how: "Add new words to your flashcard routine and reuse them in your next Writing task." },
+  { id: "sk-grammar", series: "Collins English for IELTS", title: "IELTS Grammar", tier: "skills", band: "IELTS 5–6+ (B1+)", skill: "grammar", color: "#1d4ed8",
+    url: "https://collins.co.uk/collections/all/products/9780007456833",
+    about: "The grammar that matters most for IELTS, with answers, to improve accuracy and range in Writing and Speaking.",
+    how: "Study a unit, then complete the matching grammar lesson on this site to test yourself." },
+  { id: "practice", series: "Collins English for IELTS", title: "Practice Tests for IELTS", tier: "tests", band: "All levels", skill: "all", color: "#141414",
+    url: COLLINS_SEARCH("Practice Tests for IELTS"),
+    about: "Full practice tests in exam conditions, useful in the final weeks to check your timing and your overall band.",
+    how: "Mark Listening and Reading out of 40, then use the score calculator on this site to estimate your overall band." }
+];
+const BOOK_TIERS = { start: "Starting out · band 4", skills: "Skills · band 5–6+", tests: "Exam practice" };
+const SKILL_LABEL = { reading: "Reading", listening: "Listening", writing: "Writing", speaking: "Speaking", vocab: "Vocabulary", grammar: "Grammar", all: "All skills" };
+
+function viewBooks() {
+  S.books = S.books || {};
+  const owned = BOOKS.filter(b => S.books[b.id]).length, done = BOOKS.filter(b => S.books[b.id] === "done").length;
+  app.innerHTML = `<div class="${S.level ? "" : "wrap"}" style="${S.level ? "" : "padding-top:30px;padding-bottom:60px"}">
+    ${pageHero("vocab", "Revise with books", "Collins English for IELTS", "A guide to the Collins books for IELTS: which one to choose for your level, what each covers, and how to use it with the exercises on this site.",
+      `<div class="hero-timer"><div class="small">My reading list</div><span class="timer">${done}/${owned || 0}</span></div>`)}
+    <div class="books-intro">
+      <p>These books are sold by the publisher HarperCollins and are not included on this site. Use the links to see each book on <b>collins.co.uk</b>. Mark the ones you have so you can track your progress.</p>
+      <div class="book-progress"><div class="row small" style="font-weight:700"><span>${owned} book${owned === 1 ? "" : "s"} in my list</span><div class="spacer"></div><span>${done} finished</span></div><div class="bar"><div style="width:${owned ? done / owned * 100 : 0}%;background:var(--red)"></div></div></div>
+    </div>
+
+    <div class="book-filters">
+      <div class="filter-group"><span>Level</span>${[["all", "All"], ["start", "Band 4"], ["skills", "Band 5–6+"], ["tests", "Practice tests"]].map(([k, n], i) => `<button data-tier="${k}" class="${i ? "" : "active"}">${n}</button>`).join("")}</div>
+      <div class="filter-group"><span>Skill</span>${[["all", "All"], ["reading", "Reading"], ["listening", "Listening"], ["writing", "Writing"], ["speaking", "Speaking"], ["vocab", "Vocabulary"], ["grammar", "Grammar"]].map(([k, n], i) => `<button data-skill="${k}" class="${i ? "" : "active"}">${n}</button>`).join("")}</div>
+    </div>
+
+    <div class="book-grid">
+      ${BOOKS.map((b, i) => `<article class="book reveal" data-t="${b.tier}" data-s="${b.skill}" style="--bc:${b.color};--d:${(i % 4) * .06}s">
+        <div class="cover"><span class="c-series">${esc(b.series)}</span><b>${esc(b.title)}</b><span class="c-band">${esc(b.band)}</span></div>
+        <div class="book-body">
+          <div class="row" style="gap:6px"><span class="tag neutral">${BOOK_TIERS[b.tier]}</span><span class="tag">${SKILL_LABEL[b.skill]}</span></div>
+          <h3>${esc(b.title)}</h3>
+          <p>${esc(b.about)}</p>
+          <div class="book-how"><b>How to use it here:</b> ${esc(b.how)}</div>
+          <div class="book-actions">
+            <div class="own" role="group" aria-label="My list">
+              <button data-own="${b.id}" data-v="have" class="${S.books[b.id] === "have" ? "on" : ""}">I have it</button>
+              <button data-own="${b.id}" data-v="done" class="${S.books[b.id] === "done" ? "on" : ""}">Finished</button>
+            </div>
+            <a class="btn btn-ghost btn-sm" href="${b.url}" target="_blank" rel="noopener">View on collins.co.uk ${ic("arrow", "sm arrow")}</a>
+            ${b.skill === "all" ? `<button class="btn btn-primary btn-sm" data-go-calc>Score calculator</button>` : `<button class="btn btn-primary btn-sm" data-practise="${b.skill}">Practise ${SKILL_LABEL[b.skill]}</button>`}
+          </div>
+        </div>
+      </article>`).join("")}
+    </div>
+
+    <section class="sec" style="padding-bottom:0">
+      <div class="sec-head reveal"><span class="eyebrow">Revision plan</span><h2>Books + this site, step by step</h2><p>A simple order to follow, depending on your band from the placement test.</p></div>
+      <div class="plan-steps">
+        ${[["01", "Band 3.5–4.5", "Get Ready for IELTS", "Start with the Get Ready books for your weakest skill. On this site, work through the A2 course and do one exercise a day.", "start"],
+           ["02", "Band 5–6", "Skills books", "Move to Reading, Listening, Writing and Speaking for IELTS, plus IELTS Grammar and IELTS Vocabulary. On this site, follow the B1 then B2 course.", "skills"],
+           ["03", "Final 4–6 weeks", "Practice Tests", "Do one full practice test per week in exam conditions, then revise your weak points with the C1 course and the Toolkit.", "tests"]]
+          .map(([n, b, t, d, tier], i) => `<div class="pstep reveal" style="--d:${i * .12}s"><div class="pnum-big">${n}</div><span class="tag">${b}</span><h3>${t}</h3><p>${d}</p><button class="link-btn" data-tier-jump="${tier}">See these books →</button></div>`).join("")}
+      </div>
+    </section>
+  </div>`;
+  let tier = "all", skill = "all";
+  const apply = () => $$(".book", app).forEach(c => { const ok = (tier === "all" || c.dataset.t === tier) && (skill === "all" || c.dataset.s === skill || c.dataset.s === "all"); c.classList.toggle("hide", !ok); if (ok) c.classList.add("in"); });
+  $$("[data-tier]", app).forEach(b => b.onclick = () => { tier = b.dataset.tier; $$("[data-tier]", app).forEach(x => x.classList.toggle("active", x === b)); apply(); });
+  $$("[data-skill]", app).forEach(b => b.onclick = () => { skill = b.dataset.skill; $$("[data-skill]", app).forEach(x => x.classList.toggle("active", x === b)); apply(); });
+  $$("[data-tier-jump]", app).forEach(b => b.onclick = () => { $(`[data-tier="${b.dataset.tierJump}"]`, app).click(); $(".book-filters", app).scrollIntoView({ behavior: "smooth", block: "start" }); });
+  $$("[data-own]", app).forEach(b => b.onclick = () => { const id = b.dataset.own, v = b.dataset.v; S.books[id] = S.books[id] === v ? undefined : v; if (!S.books[id]) delete S.books[id]; save(); const y = scrollY; viewBooks(); initReveal(); $$(".book", app).forEach(c => c.classList.add("in")); scrollTo(0, y); toast(S.books[id] === "done" ? "Book marked as finished" : S.books[id] ? "Added to your reading list" : "Removed from your list"); });
+  $$("[data-practise]", app).forEach(b => b.onclick = () => startModule(b.dataset.practise));
+  $$("[data-go-calc]", app).forEach(b => b.onclick = () => { location.hash = S.level ? "#/toolkit/exam" : "#/"; setTimeout(() => document.getElementById("score")?.scrollIntoView({ behavior: "smooth" }), 400); });
+}
+
 /* =========================================================
    ROUTEUR
    ========================================================= */
 const ROUTES = {
   "": viewHome, test: viewTest, result: viewResult,
-  dashboard: viewDashboard, grammar: viewGrammar, vocab: p => viewVocab(p, "cards"), toolkit: viewToolkit,
+  dashboard: viewDashboard, grammar: viewGrammar, vocab: p => viewVocab(p, "cards"), toolkit: viewToolkit, books: viewBooks,
   reading: viewReading, listening: viewListening, writing: viewWriting, speaking: p => viewSpeaking(p, "2"), progress: viewProgress
 };
 const NEEDS_LEVEL = ["toolkit", "dashboard", "grammar", "vocab", "reading", "listening", "writing", "speaking", "progress"];
