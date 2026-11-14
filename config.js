@@ -7,8 +7,13 @@ const PREMIUM_CONFIG = {
   currency: "DA",
   priceNote: "one payment",
 
-  // Lien de paiement SofizPay (CIB / Edahabia), créé dans ton espace marchand SofizPay.
-  // Colle-le entre les guillemets, par exemple : "https://...". Laisse vide tant qu il n existe pas.
+  // Compte marchand SofizPay : ton adresse PUBLIQUE (commence par G). Elle peut être publiée sans risque.
+  // Ne mets JAMAIS ici une clé secrète (qui commence par S).
+  sofizpayAccount: "GCBOEMS52WXFD2IC2YUJVQI74TTP3RBETE74TM6ZHGQL3R4B43RMMMKI",
+  // Adresse SofizPay qui crée le paiement par carte CIB / Edahabia (d'après le kit officiel sofizpay-sdk-js).
+  sofizpayEndpoint: "https://www.sofizpay.com/make-cib-transaction/",
+
+  // (Optionnel) lien de paiement créé à la main dans ton espace SofizPay, utilisé seulement si le compte est vide.
   sofizpayLink: "",
 
   // Contact pour envoyer le reçu et les corrections (laisse vide si tu ne veux pas l afficher).

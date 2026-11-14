@@ -1240,3 +1240,12 @@ button.crit:hover .crit-go, button.crit:focus-visible .crit-go { opacity: 1; tra
 .pm-lock-ic { width: 76px; height: 76px; border-radius: 50%; background: var(--red); color: #fff; display: grid; place-items: center; margin: 0 auto 18px; }
 .pm-lock-ic .ic { display: block; width: 34px; height: 34px; }
 .pm-lock h2 { font-size: 1.9rem; font-weight: 800; }
+
+/* Paiement SofizPay */
+.pay-form { display: grid; gap: 14px; }
+.pay-form label { display: grid; gap: 6px; font-weight: 700; }
+.pay-form input { padding: 12px 14px; font: inherit; border: 2px solid var(--line-2); background: var(--surface); color: var(--text); }
+.pay-form input:focus { outline: none; border-color: var(--red); }
+.pay-form input:invalid:not(:placeholder-shown) { border-color: var(--bad); }
+.pay-back { display: grid; gap: 4px; padding: 18px 22px; margin-bottom: 20px; background: var(--good-soft); border-left: 6px solid var(--good); }
+.pay-back b { font-size: 1.15rem; }

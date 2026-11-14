@@ -2248,12 +2248,40 @@ const contactButtons = (subject, body) => {
   return `${wa ? `<a class="btn btn-primary" href="${wa}" target="_blank" rel="noopener">Send by WhatsApp</a>` : ""}${ml ? `<a class="btn btn-ghost" href="${ml}">Send by email</a>` : ""}`;
 };
 
-function viewPremium() {
+// Paiement SofizPay : l'élève est envoyé vers la page CIB / Edahabia de SofizPay (même appel que makeCIBTransaction du kit officiel)
+function openPayForm() {
+  const m = openModal(`<div class="modal-head" style="--img:url('${photo("grad", 900)}')"><span class="eyebrow">Secure payment · SofizPay</span><h2>Pay ${priceTxt()} for Premium</h2><p>SofizPay asks for these details to create your CIB or Edahabia card payment. You enter your card details on SofizPay's page, never on IELTS Pro.</p></div>
+    <form class="modal-body pay-form" id="payForm" autocomplete="on">
+      <label>Full name<input name="full_name" required minlength="3" autocomplete="name" placeholder="First name and last name"></label>
+      <label>Phone<input name="phone" required type="tel" autocomplete="tel" placeholder="+213 5XX XX XX XX" pattern="[+0-9 ().\-]{9,22}" title="Your phone number, for example +213 555 12 34 56 or 0555 12 34 56"></label>
+      <label>Email<input name="email" required type="email" autocomplete="email" placeholder="you@example.com"></label>
+      <p class="small muted">After paying, you come back here. Send your receipt and you will receive your activation code.</p>
+      <div class="row"><button class="btn btn-primary btn-lg" type="submit">Continue to SofizPay ${ic("arrow", "arrow")}</button><span class="pm-cards"><span>CIB</span><span>Edahabia</span></span></div>
+    </form>`);
+  $("#payForm", m).onsubmit = e => {
+    e.preventDefault();
+    const f = new FormData(e.target);
+    const params = new URLSearchParams({
+      account: PC.sofizpayAccount, amount: String(PC.price),
+      full_name: f.get("full_name").trim(), phone: f.get("phone").replace(/\s+/g, ""), email: f.get("email").trim(),
+      memo: "IELTS Pro Premium", return_url: SITE_URL + "#/premium/paid", redirect: "yes"
+    });
+    S.payStarted = new Date().toISOString(); save();
+    location.href = `${PC.sofizpayEndpoint}?${params.toString()}`;
+  };
+}
+
+function viewPremium(p) {
   const prem = isPremium();
-  const payBtn = PC.sofizpayLink
-    ? `<a class="btn btn-primary btn-lg" href="${PC.sofizpayLink}" target="_blank" rel="noopener">Pay ${priceTxt()} with SofizPay ${ic("arrow", "arrow")}</a>`
-    : `<button class="btn btn-primary btn-lg" disabled>Online payment coming soon</button>`;
+  const canPay = !!(PC.sofizpayAccount || PC.sofizpayLink);
+  const payBtn = PC.sofizpayAccount
+    ? `<button class="btn btn-primary btn-lg" data-pay>Pay ${priceTxt()} with SofizPay ${ic("arrow", "arrow")}</button>`
+    : PC.sofizpayLink
+      ? `<a class="btn btn-primary btn-lg" href="${PC.sofizpayLink}" target="_blank" rel="noopener">Pay ${priceTxt()} with SofizPay ${ic("arrow", "arrow")}</a>`
+      : `<button class="btn btn-primary btn-lg" disabled>Online payment coming soon</button>`;
+  const backFromPay = p === "paid" && !prem;
   app.innerHTML = `<div class="${S.level ? "" : "wrap"}" style="${S.level ? "" : "padding-top:30px;padding-bottom:60px"}">
+    ${backFromPay ? `<div class="pay-back fade-in"><b>Thank you! Your payment was sent to SofizPay.</b><span>Now send your receipt (step 2 below) to receive your activation code, then enter it in step 3.</span></div>` : ""}
     <section class="pm-hero">
       <div class="pm-copy">
         <span class="eyebrow" style="color:#fff">IELTS Pro Premium</span>
@@ -2299,6 +2327,8 @@ function viewPremium() {
       <p class="small muted">Premium is activated on the device and browser where you enter your code. Keep your code to activate it again if you change device.</p>
     </section>
   </div>`;
+  $$("[data-pay]", app).forEach(b => b.onclick = openPayForm);
+  if (backFromPay) setTimeout(() => $(".pm-steps")?.scrollIntoView({ behavior: "smooth", block: "start" }), 400);
   const form = $("#codeForm");
   if (form) form.onsubmit = async e => {
     e.preventDefault();
