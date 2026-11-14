@@ -262,12 +262,12 @@ function updateTop() {
         <span class="chip-stat xp" title="Activity points">${ic("chart")}${S.xp} <span class="lbl">pts</span></span>
         ${themeBtn}<span class="avatar" title="My profile">${L.id}</span>
       </div>`;
-    $("#footer").innerHTML = `<div class="app-footer">IELTS Pro · scores are estimates, not official results.</div>`;
+    $("#footer").innerHTML = `<div class="app-footer">IELTS Pro · made in Aïn Beïda by <a href="#/about">Solvarynlabs</a> · scores are estimates, not official results.</div>`;
   } else {
     $("#sidebar").innerHTML = "";
     const onHome = route === "";
     $("#topbar").innerHTML = `${brandHTML}
-      <nav class="pubnav">${onHome ? [["format", "The exam"], ["score", "Score calculator"], ["criteres", "Criteria"], ["modules", "Practice"], ["faq", "FAQ"]].map(([id, n]) => `<button data-scroll="${id}">${n}</button>`).join("") : `<button data-go="">Home</button>`}<button data-go="books">Books</button></nav>
+      <nav class="pubnav">${onHome ? [["format", "The exam"], ["score", "Score calculator"], ["criteres", "Criteria"], ["modules", "Practice"], ["faq", "FAQ"]].map(([id, n]) => `<button data-scroll="${id}">${n}</button>`).join("") : `<button data-go="">Home</button>`}<button data-go="books">Books</button><button data-go="about">About</button></nav>
       <div class="top-actions">${flagPair("sm")}${themeBtn}
         ${S.level ? `<a class="btn btn-dark btn-sm" href="#/dashboard">My dashboard ${ic("arrow", "sm arrow")}</a>` : route === "test" ? "" : `<a class="btn btn-primary btn-sm" href="#/test">Take the test ${ic("arrow", "sm arrow")}</a>`}
       </div>`;
@@ -276,15 +276,27 @@ function updateTop() {
           <div>${brandHTML}${flagPair("foot")}<p style="max-width:320px;margin-top:14px">Complete IELTS Academic preparation: a placement test, a personalised course and progress tracking.</p></div>
           <div><h4>Get started</h4><a href="#/test">Placement test</a>${S.level ? `<a href="#/dashboard">Dashboard</a>` : ""}</div>
           <div><h4>Practice</h4><button data-scroll="modules">Reading & Listening</button><button data-scroll="modules">Writing</button><button data-scroll="modules">Speaking</button></div>
-          <div><h4>Help</h4><button data-scroll="faq">FAQ</button><button data-scroll="levels">Levels</button></div>
+          <div><h4>Help</h4><button data-scroll="faq">FAQ</button><button data-scroll="levels">Levels</button><a href="#/about">About IELTS Pro</a></div>
         </div>
-        <div class="foot-bottom"><span>© ${new Date().getFullYear()} IELTS Pro — an independent practice site, not affiliated with IELTS, the British Council, IDP or Cambridge.</span><span>Scores are estimates, not official results.</span></div>
+        <div class="foot-bottom"><span>© ${new Date().getFullYear()} IELTS Pro — made in Aïn Beïda, Algeria by <a href="#/about" style="color:#fff">Solvarynlabs</a>. An independent practice site, not affiliated with IELTS, the British Council, IDP or Cambridge.</span><span>Scores are estimates, not official results.</span></div>
       </div></footer>` : "";
   }
   $("#themeBtn").onclick = toggleTheme;
-  $$("[data-scroll]").forEach(b => b.onclick = () => document.getElementById(b.dataset.scroll)?.scrollIntoView({ behavior: "smooth", block: "start" }));
-  $$("[data-go]").forEach(b => b.onclick = () => location.hash = "#/" + b.dataset.go);
 }
+
+/* Boutons de défilement et de navigation : une seule écoute globale,
+   qui marche aussi pour les boutons affichés après le menu (contenu des pages). */
+document.addEventListener("click", e => {
+  const sc = e.target.closest("[data-scroll]");
+  if (sc) {
+    const id = sc.dataset.scroll;
+    const go = () => document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    if (document.getElementById(id)) go(); else { location.hash = "#/"; setTimeout(go, 450); }
+    return;
+  }
+  const g = e.target.closest("[data-go]");
+  if (g) location.hash = "#/" + g.dataset.go;
+});
 
 /* ---------------- Animations : titres, barre de lecture, parallaxe ---------------- */
 function splitTitles() {
@@ -729,6 +741,11 @@ function viewHome() {
       </div>
       <div class="bridge-side"><div class="big-flag wave">${flagUK()}</div><b>United Kingdom</b><span>Where IELTS can take you</span></div>
     </section>
+    <a class="made-strip reveal" href="#/about">
+      ${stampSVG("stampStrip")}
+      <div><b>Made in Aïn Beïda, Algeria — by Solvarynlabs</b><span>A free IELTS coach designed and built in eastern Algeria. Discover the project and share it with your friends.</span></div>
+      <span class="btn btn-primary">Discover ${ic("arrow", "arrow")}</span>
+    </a>
   </div>
     ${examSectionsHTML()}
   <div class="wrap">
@@ -1985,12 +2002,139 @@ function viewBook(p) {
   show(cur);
 }
 
+
+/* ---------------- Page publicitaire : Solvarynlabs · Aïn Beïda ---------------- */
+const SITE_URL = "https://solvarynlabs-spec.github.io/iels/";
+const STUDIO = { name: "Solvarynlabs", city: "Aïn Beïda", region: "Oum El Bouaghi", country: "Algeria", github: "https://github.com/solvarynlabs-spec" };
+
+function stampSVG(id = "stamp") {
+  return `<svg class="stamp" viewBox="0 0 200 200" aria-hidden="true">
+    <defs><path id="${id}" d="M100,100 m-78,0 a78,78 0 1,1 156,0 a78,78 0 1,1 -156,0"/></defs>
+    <circle cx="100" cy="100" r="96" fill="var(--red)"/>
+    <g class="stamp-ring"><text font-size="15.5" font-weight="800" letter-spacing="3.2" fill="#fff"><textPath href="#${id}">MADE IN AÏN BEÏDA · ALGERIA · BY SOLVARYNLABS ·</textPath></text></g>
+    <text x="100" y="96" text-anchor="middle" font-size="30" font-weight="800" fill="#fff">IELTS</text>
+    <text x="100" y="126" text-anchor="middle" font-size="22" font-weight="800" fill="#fff">PRO</text>
+  </svg>`;
+}
+
+function viewAbout() {
+  const exercises = LEVELS.reduce((n, l) => n + allItemsCount(l), 0);
+  const share = encodeURIComponent(`IELTS Pro — free IELTS preparation, made in Aïn Beïda by Solvarynlabs: ${SITE_URL}`);
+  app.innerHTML = `
+  <section class="ad-hero">
+    <div class="ad-bg" aria-hidden="true">${["IELTS", "BAND 7", "READING", "WRITING", "SPEAKING", "LISTENING", "FREE"].map((w, i) => `<span style="--i:${i}">${w}</span>`).join("")}</div>
+    <div class="wrap ad-hero-in">
+      <div class="ad-copy">
+        <span class="ad-kicker">${flagDZ()} Made in ${STUDIO.city}, ${STUDIO.country}</span>
+        <h1 class="display ad-title">Your free <em>IELTS coach</em>, online.</h1>
+        <p class="ad-lead">IELTS Pro is designed and built by <b>${STUDIO.name}</b> in ${STUDIO.city} for every student who wants to study in the UK and beyond. A placement test, ${exercises} exercises, free study books — and it costs nothing.</p>
+        <div class="row" style="margin-top:28px">
+          <a class="btn btn-white btn-lg" href="#/test">Start free — take the test ${ic("arrow", "arrow")}</a>
+          <button class="btn btn-outline-white btn-lg" data-scroll="share">Share with a friend</button>
+        </div>
+        <div class="ad-badges"><span>100% free</span><span>No account</span><span>Works on phone</span><span>British English</span></div>
+      </div>
+      <div class="ad-visual">${stampSVG("stampHero")}<div class="ad-phone"><div class="ad-screen"><b>Band 7.0</b><small>Overall score</small><div class="ad-bars"><i style="--h:70%"></i><i style="--h:82%"></i><i style="--h:60%"></i><i style="--h:75%"></i></div><span>L · R · W · S</span></div></div></div>
+    </div>
+  </section>
+
+  <div class="wrap">
+    <section class="ad-strip reveal">
+      ${[["21", "question placement test"], [String(exercises), "corrected exercises"], ["4", "free study books"], ["0 DA", "price, forever"]].map(([n, l], i) => `<div style="--d:${i * .08}s"><b>${n}</b><span>${l}</span></div>`).join("")}
+    </section>
+
+    <section class="sec ad-where">
+      <div class="reveal from-left">
+        <span class="eyebrow">Where it's made</span>
+        <h2 class="h2-sec">From ${STUDIO.city} to the world</h2>
+        <p class="muted">${STUDIO.name} is a small studio based in <b>${STUDIO.city}</b> (${STUDIO.region}), in eastern Algeria. We built IELTS Pro because good IELTS preparation is often expensive and hard to find. Our goal: give every Algerian student a serious, free way to reach band 6.5 and 7 — the score most UK universities ask for.</p>
+        <ul class="ad-list"><li>Designed and developed in ${STUDIO.city}</li><li>Content written for IELTS Academic, in English</li><li>Open to everyone, everywhere, for free</li></ul>
+        <a class="btn btn-ghost" href="${STUDIO.github}" target="_blank" rel="noopener">${STUDIO.name} on GitHub ${ic("arrow", "sm arrow")}</a>
+      </div>
+      <div class="ad-map reveal from-right">
+        <svg viewBox="0 0 300 300" class="map-svg" aria-label="Map of Algeria with Aïn Beïda marked">
+          <path class="dz-shape" d="M60 40 L150 22 L205 28 L232 22 L248 46 L236 82 L252 120 L262 168 L282 196 L262 238 L198 278 L160 282 L60 186 L40 160 L46 110 L34 88 Z"/>
+          <circle class="pin-pulse" cx="214" cy="54" r="10"/>
+          <circle class="pin-pulse p2" cx="214" cy="54" r="10"/>
+          <circle cx="214" cy="54" r="6" fill="var(--red)" stroke="#fff" stroke-width="2"/>
+          <text x="200" y="40" text-anchor="end" font-size="13" font-weight="800" class="pin-label">Aïn Beïda</text>
+          <text x="150" y="160" text-anchor="middle" font-size="22" font-weight="800" class="map-name">ALGERIA</text>
+        </svg>
+        <div class="map-flags"><span class="flag wave">${flagDZ()}</span><span class="map-arrow">→</span><span class="flag wave">${flagUK()}</span></div>
+        <p class="small muted" style="text-align:center;margin:8px 0 0">Simplified map, for illustration.</p>
+      </div>
+    </section>
+
+    <section class="sec" style="padding-top:0">
+      <div class="sec-head center reveal"><span class="eyebrow">What you get</span><h2>Everything to pass IELTS, in one place</h2></div>
+      <div class="ad-feats">
+        ${[["01", "Placement test", "21 questions, 15 minutes, your estimated band and your level."], ["02", "Personal course", "Grammar, vocabulary, Reading, Listening, Writing and Speaking at your level."], ["03", "Free study books", "One book per level, readable online or saved as PDF."], ["04", "Writing analysis", "Your essays checked on the four official criteria, with model answers."], ["05", "Speaking practice", "Cue cards, timer, live transcription and your own recording."], ["06", "Score calculator", "See how each section changes your overall band."]]
+          .map(([n, t, d], i) => `<div class="ad-feat reveal" style="--d:${(i % 3) * .1}s"><span>${n}</span><h3>${t}</h3><p>${d}</p></div>`).join("")}
+      </div>
+    </section>
+
+    <section class="sec ad-share" id="share" style="padding-top:0">
+      <div class="ad-poster-wrap reveal zoom"><canvas id="poster" width="1080" height="1080" aria-label="IELTS Pro poster"></canvas></div>
+      <div class="reveal">
+        <span class="eyebrow">Spread the word</span>
+        <h2 class="h2-sec">Share IELTS Pro</h2>
+        <p class="muted">Help a friend, a cousin or your classmates prepare for free. Download the poster for Instagram, Facebook or WhatsApp status, or share the link directly.</p>
+        <div class="share-grid">
+          <button class="share-btn" id="dlPoster"><b>Download poster</b><span>PNG · 1080 × 1080</span></button>
+          <a class="share-btn" href="https://wa.me/?text=${share}" target="_blank" rel="noopener"><b>WhatsApp</b><span>Send to a contact</span></a>
+          <a class="share-btn" href="https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(SITE_URL)}" target="_blank" rel="noopener"><b>Facebook</b><span>Share on your page</span></a>
+          <a class="share-btn" href="https://t.me/share/url?url=${encodeURIComponent(SITE_URL)}&text=${encodeURIComponent("IELTS Pro — free IELTS preparation, made in Aïn Beïda by Solvarynlabs")}" target="_blank" rel="noopener"><b>Telegram</b><span>Share in a group</span></a>
+          <button class="share-btn" id="copyLink"><b>Copy link</b><span>${SITE_URL.replace("https://", "")}</span></button>
+        </div>
+      </div>
+    </section>
+
+    <section class="cta-band reveal zoom">
+      <img src="${photo("friends", 1600)}" alt="" loading="lazy">
+      <div>
+        <span class="eyebrow" style="color:#fff">IELTS Pro · by ${STUDIO.name}</span>
+        <h2>Made in ${STUDIO.city}. Built for your future.</h2>
+        <p>Take the free placement test now and get your study book for your level.</p>
+        <div class="row" style="margin-top:24px"><a class="btn btn-white btn-lg" href="#/test">Take the free test ${ic("arrow", "arrow")}</a></div>
+      </div>
+    </section>
+  </div>`;
+  drawPoster($("#poster"));
+  $("#dlPoster").onclick = () => { const a = document.createElement("a"); a.download = "ielts-pro-solvarynlabs.png"; a.href = $("#poster").toDataURL("image/png"); a.click(); toast("Poster downloaded"); };
+  $("#copyLink").onclick = async () => { try { await navigator.clipboard.writeText(SITE_URL); toast("Link copied"); } catch { toast(SITE_URL); } };
+}
+
+// Affiche carrée pour les réseaux sociaux (dessinée sur un canvas)
+function drawPoster(c) {
+  if (!c) return;
+  const x = c.getContext("2d"), W = 1080, F = "Barlow, Arial, sans-serif";
+  x.fillStyle = "#e4002b"; x.fillRect(0, 0, W, W);
+  x.fillStyle = "#141414"; x.beginPath(); x.moveTo(0, 700); x.lineTo(W, 560); x.lineTo(W, W); x.lineTo(0, W); x.fill();
+  // grands mots en filigrane
+  x.save(); x.globalAlpha = .1; x.fillStyle = "#fff"; x.font = `800 150px ${F}`;
+  ["READING", "WRITING", "SPEAKING"].forEach((w, i) => x.fillText(w, -40 + i * 60, 210 + i * 150)); x.restore();
+  x.fillStyle = "#fff"; x.font = `800 46px ${F}`; x.fillText("FREE · ONLINE · IN ENGLISH", 80, 120);
+  x.font = `800 190px ${F}`; x.fillText("IELTS", 70, 330); x.fillText("PRO", 70, 500);
+  x.font = `600 46px ${F}`; x.fillText("Placement test · 72 exercises", 80, 580);
+  x.fillText("Free study books · Band 7 method", 80, 640);
+  // drapeau algérien
+  const fx = 80, fy = 780, fw = 150, fh = 100;
+  x.fillStyle = "#006233"; x.fillRect(fx, fy, fw / 2, fh); x.fillStyle = "#fff"; x.fillRect(fx + fw / 2, fy, fw / 2, fh);
+  x.fillStyle = "#d21034"; x.beginPath(); x.arc(fx + fw / 2, fy + fh / 2, 30, 0, Math.PI * 2); x.fill();
+  x.fillStyle = "#fff"; x.beginPath(); x.arc(fx + fw / 2 + 8, fy + fh / 2, 25, 0, Math.PI * 2); x.fill();
+  x.fillStyle = "#d21034"; x.beginPath();
+  for (let i = 0; i < 10; i++) { const r = i % 2 ? 7 : 16, a = -Math.PI / 2 + i * Math.PI / 5; x.lineTo(fx + fw / 2 + 18 + Math.cos(a) * r, fy + fh / 2 + Math.sin(a) * r); } x.fill();
+  x.fillStyle = "#fff"; x.font = `800 54px ${F}`; x.fillText("Made in Aïn Beïda", 260, 830);
+  x.font = `600 40px ${F}`; x.fillStyle = "#ffb3c0"; x.fillText("by Solvarynlabs", 260, 880);
+  x.fillStyle = "#fff"; x.font = `700 38px ${F}`; x.fillText(SITE_URL.replace("https://", ""), 80, 1000);
+}
+
 /* =========================================================
    ROUTEUR
    ========================================================= */
 const ROUTES = {
   "": viewHome, test: viewTest, result: viewResult,
-  dashboard: viewDashboard, grammar: viewGrammar, vocab: p => viewVocab(p, "cards"), toolkit: viewToolkit, books: viewBooks, book: viewBook,
+  dashboard: viewDashboard, grammar: viewGrammar, vocab: p => viewVocab(p, "cards"), toolkit: viewToolkit, books: viewBooks, book: viewBook, about: viewAbout,
   reading: viewReading, listening: viewListening, writing: viewWriting, speaking: p => viewSpeaking(p, "2"), progress: viewProgress
 };
 const NEEDS_LEVEL = ["toolkit", "dashboard", "grammar", "vocab", "reading", "listening", "writing", "speaking", "progress"];
