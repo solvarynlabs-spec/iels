@@ -1,0 +1,15 @@
+rules_version = '2';
+// Règles de sécurité pour IELTS Pro (à coller dans Firebase > Firestore Database > Règles).
+// Chaque élève peut lire et modifier uniquement son propre document users/{son identifiant}.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId
+        && (request.resource == null || request.resource.size() < 900000);
+    }
+    // Tout le reste est fermé.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
