@@ -227,7 +227,7 @@ const brandHTML = `<a href="#/" class="brand"><span class="brand-logo">i</span><
 
 function updateTop() {
   const [route, p] = location.hash.replace(/^#\/?/, "").split("/");
-  const isApp = !!S.level && (NEEDS_LEVEL.includes(route) || route === "books" || route === "book");
+  const isApp = !!S.level && (NEEDS_LEVEL.includes(route) || ["books", "book", "premium", "teacher"].includes(route));
   document.body.classList.toggle("appmode", isApp);
   document.body.classList.toggle("public", !isApp);
   const dark = document.documentElement.dataset.theme === "dark";
@@ -248,6 +248,9 @@ function updateTop() {
       ${link("toolkit", "layers", "Toolkit", null, "#f43f5e")}
       ${link("book", "open", "My study book", null, "#e4002b")}
       ${link("books", "book", "Collins books", null, "#e4002b")}
+      <div class="side-label">Premium</div>
+      ${link("teacher", "pen", "Teacher correction", null, "#e4002b")}
+      ${link("premium", "star", isPremium() ? "Premium ✓" : "Go Premium", null, "#e4002b")}
       <div class="side-label">${L.id} modules</div>
       ${MODULES.map(m => link(m.route, m.icon, m.name, m.key, m.color)).join("")}
       <div class="side-level">
@@ -267,7 +270,7 @@ function updateTop() {
     $("#sidebar").innerHTML = "";
     const onHome = route === "";
     $("#topbar").innerHTML = `${brandHTML}
-      <nav class="pubnav">${onHome ? [["format", "The exam"], ["score", "Score calculator"], ["criteres", "Criteria"], ["modules", "Practice"], ["faq", "FAQ"]].map(([id, n]) => `<button data-scroll="${id}">${n}</button>`).join("") : `<button data-go="">Home</button>`}<button data-go="books">Books</button><button data-go="about">About</button></nav>
+      <nav class="pubnav">${onHome ? [["format", "The exam"], ["score", "Score calculator"], ["criteres", "Criteria"], ["modules", "Practice"], ["faq", "FAQ"]].map(([id, n]) => `<button data-scroll="${id}">${n}</button>`).join("") : `<button data-go="">Home</button>`}<button data-go="books">Books</button><button data-go="about">About</button><button data-go="premium" class="nav-premium">Premium</button></nav>
       <div class="top-actions">${flagPair("sm")}${themeBtn}
         ${S.level ? `<a class="btn btn-dark btn-sm" href="#/dashboard">My dashboard ${ic("arrow", "sm arrow")}</a>` : route === "test" ? "" : `<a class="btn btn-primary btn-sm" href="#/test">Take the test ${ic("arrow", "sm arrow")}</a>`}
       </div>`;
@@ -533,7 +536,7 @@ function recorder(el, { maxSec = 0, label = "🎙️ Start speaking", onResult }
         <div class="metric"><div class="muted small">Speed</div><div class="v">${wpm ? wpm + " <span class='small muted'>wpm</span>" : "—"}</div></div>
         <div class="metric"><div class="muted small">Fillers</div><div class="v">${words.length ? fillers : "—"}</div></div>
       </div>
-      ${url ? `<div style="margin-top:12px"><div class="muted small">🔁 Listen back:</div><audio controls src="${url}" style="width:100%;margin-top:6px"></audio></div>` : ""}
+      ${url ? `<div style="margin-top:12px"><div class="muted small">🔁 Listen back:</div><audio controls src="${url}" style="width:100%;margin-top:6px"></audio><a class="btn btn-ghost btn-sm" style="margin-top:8px" href="${url}" download="ielts-pro-speaking.webm">Download my recording</a></div>` : ""}
       <ul class="feedback-list" style="margin-top:12px">
         ${words.length ? `<li>${wpm >= 100 && wpm <= 170 ? "✅" : "⚠️"} Speed ${wpm} words/min — ideally between 110 and 160.</li>
         <li>${fillers <= 3 ? "✅" : "⚠️"} ${fillers} filler(s) (um, like, you know…). ${fillers > 3 ? "Replace them with a short pause." : ""}</li>
@@ -1474,6 +1477,7 @@ function viewWriting(p) {
         <div class="row" style="margin-top:12px">
           <span id="wc" class="tag">0 words</span><span class="muted small">draft saved</span><div class="spacer"></div>
           <button class="btn btn-ghost" id="model">Model answer</button>
+          <button class="btn btn-ghost" id="askTeacher">Ask a teacher</button>
           <button class="btn btn-primary" id="analyze">${ic("chart", "sm")} Analyse</button>
         </div>
         <div id="modelZone"></div>
@@ -1490,6 +1494,7 @@ function viewWriting(p) {
       if (left <= 0) { clearInterval(iv); iv = null; el.textContent = "0:00"; toast("Time is up! Put your pen down and analyse your answer."); } }, 1000);
   };
   onLeave(() => clearInterval(iv));
+  $("#askTeacher").onclick = () => { S.teacherDraft = { task: W.prompt, text: ta.value }; save(); location.hash = "#/teacher/writing"; };
   $("#model").onclick = () => {
     const z = $("#modelZone");
     z.innerHTML = z.innerHTML ? "" : `<hr><h3>Model answer (band ${L.target.toFixed(1)}+)</h3><div class="model-answer">${esc(W.model)}</div>`;
@@ -2104,12 +2109,12 @@ function viewAbout() {
       <div class="ad-copy">
         <span class="ad-kicker">${flagDZ()} Made in ${STUDIO.city}, ${STUDIO.country}</span>
         <h1 class="display ad-title">Your free <em>IELTS coach</em>, online.</h1>
-        <p class="ad-lead">IELTS Pro is designed and built by <b>${STUDIO.name}</b> in ${STUDIO.city} for every student who wants to study in the UK and beyond. A placement test, ${exercises} exercises, free study books — and it costs nothing.</p>
+        <p class="ad-lead">IELTS Pro is designed and built by <b>${STUDIO.name}</b> in ${STUDIO.city} for every student who wants to study in the UK and beyond. A placement test, ${exercises} exercises, free study books — and the full course is free.</p>
         <div class="row" style="margin-top:28px">
           <a class="btn btn-white btn-lg" href="#/test">Start free — take the test ${ic("arrow", "arrow")}</a>
           <button class="btn btn-outline-white btn-lg" data-scroll="share">Share with a friend</button>
         </div>
-        <div class="ad-badges"><span>100% free</span><span>No account</span><span>Works on phone</span><span>British English</span></div>
+        <div class="ad-badges"><span>Free course</span><span>No account</span><span>Works on phone</span><span>British English</span></div>
       </div>
       <div class="ad-visual">${stampSVG("stampHero")}<div class="ad-phone"><div class="ad-screen"><b>Band 7.0</b><small>Overall score</small><div class="ad-bars"><i style="--h:70%"></i><i style="--h:82%"></i><i style="--h:60%"></i><i style="--h:75%"></i></div><span>L · R · W · S</span></div></div></div>
     </div>
@@ -2117,7 +2122,7 @@ function viewAbout() {
 
   <div class="wrap">
     <section class="ad-strip reveal">
-      ${[["21", "question placement test"], [String(exercises), "corrected exercises"], ["4", "free study books"], ["0 DA", "price, forever"]].map(([n, l], i) => `<div style="--d:${i * .08}s"><b>${n}</b><span>${l}</span></div>`).join("")}
+      ${[["21", "question placement test"], [String(exercises), "corrected exercises"], ["4", "free study books"], ["Free", "course · Premium optional"]].map(([n, l], i) => `<div style="--d:${i * .08}s"><b>${n}</b><span>${l}</span></div>`).join("")}
     </section>
 
     <section class="sec ad-where">
@@ -2226,12 +2231,164 @@ function drawPoster(c) {
   x.fillStyle = "#fff"; x.font = `700 38px ${F}`; x.fillText(SITE_URL.replace("https://", ""), 80, 1000);
 }
 
+
+/* ---------------- Premium (SofizPay) et correction par un professeur ---------------- */
+const PC = typeof PREMIUM_CONFIG !== "undefined" ? PREMIUM_CONFIG : { price: 5000, currency: "DA", priceNote: "one payment", sofizpayLink: "", whatsapp: "", email: "", codeHashes: [] };
+const isPremium = () => !!(S.premium && S.premium.since);
+const priceTxt = () => `${PC.price.toLocaleString("fr-FR").replace(/ /g, " ")} ${PC.currency}`;
+async function sha256Hex(txt) {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(txt));
+  return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, "0")).join("");
+}
+const waLink = text => PC.whatsapp ? `https://wa.me/${PC.whatsapp}?text=${encodeURIComponent(text)}` : "";
+const mailLink = (subject, body) => PC.email ? `mailto:${PC.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}` : "";
+const contactButtons = (subject, body) => {
+  const wa = waLink(`${subject}\n\n${body}`), ml = mailLink(subject, body);
+  if (!wa && !ml) return `<p class="pm-soon">Sending will be available very soon.</p>`;
+  return `${wa ? `<a class="btn btn-primary" href="${wa}" target="_blank" rel="noopener">Send by WhatsApp</a>` : ""}${ml ? `<a class="btn btn-ghost" href="${ml}">Send by email</a>` : ""}`;
+};
+
+function viewPremium() {
+  const prem = isPremium();
+  const payBtn = PC.sofizpayLink
+    ? `<a class="btn btn-primary btn-lg" href="${PC.sofizpayLink}" target="_blank" rel="noopener">Pay ${priceTxt()} with SofizPay ${ic("arrow", "arrow")}</a>`
+    : `<button class="btn btn-primary btn-lg" disabled>Online payment coming soon</button>`;
+  app.innerHTML = `<div class="${S.level ? "" : "wrap"}" style="${S.level ? "" : "padding-top:30px;padding-bottom:60px"}">
+    <section class="pm-hero">
+      <div class="pm-copy">
+        <span class="eyebrow" style="color:#fff">IELTS Pro Premium</span>
+        <h1 class="display">Get your Writing and Speaking corrected by a teacher.</h1>
+        <p>Everything on IELTS Pro stays free. Premium adds personal corrections by a teacher, so you know exactly what to fix before the exam.</p>
+        ${prem ? `<div class="pm-active">${ic("check", "sm")} Premium is active on this device since ${new Date(S.premium.since).toLocaleDateString("en-GB")}</div>
+          <a class="btn btn-white btn-lg" href="#/teacher">Send a correction request ${ic("arrow", "arrow")}</a>` : payBtn.replace("btn-primary", "btn-white")}
+      </div>
+      <div class="pm-price">
+        <span class="pm-label">Premium</span>
+        <div class="pm-amount">${PC.price.toLocaleString("fr-FR").replace(/ /g, " ")}<small>${PC.currency}</small></div>
+        <span class="pm-note">${esc(PC.priceNote)}</span>
+        <ul>
+          <li>Writing essays corrected by a teacher</li>
+          <li>Speaking recordings assessed by a teacher</li>
+          <li>Feedback on the 4 official criteria</li>
+          <li>Everything free stays free</li>
+        </ul>
+        <div class="pm-cards"><span>CIB</span><span>Edahabia</span><span>via SofizPay</span></div>
+      </div>
+    </section>
+
+    <section class="pm-compare">
+      <div class="pm-col">
+        <h3>Free</h3><span class="muted">for everyone</span>
+        <ul>${["Placement test and band estimate", "72 exercises at your level", "4 free study books (PDF)", "Automatic Writing analysis", "Speaking practice with transcription", "Score calculator and exam guide"].map(x => `<li>${x}</li>`).join("")}</ul>
+      </div>
+      <div class="pm-col pm-col-premium">
+        <h3>Premium</h3><span>${priceTxt()} · ${esc(PC.priceNote)}</span>
+        <ul>${["Everything in Free", "Teacher corrections for your Writing", "Teacher feedback on your Speaking recordings", "Personal advice on what to improve next"].map(x => `<li>${x}</li>`).join("")}</ul>
+      </div>
+    </section>
+
+    <section class="pm-steps">
+      <h2 class="h2-sec">How to get Premium</h2>
+      <ol>
+        <li><span class="pm-n">01</span><div><b>Pay securely with SofizPay</b><p>Pay ${priceTxt()} by CIB or Edahabia card. The payment page is run by SofizPay: IELTS Pro never sees your card details.</p>${payBtn.replace(" btn-lg", "")}</div></li>
+        <li><span class="pm-n">02</span><div><b>Send your payment receipt</b><p>Send a screenshot of your receipt. We reply with your personal activation code.</p><div class="row">${contactButtons("IELTS Pro Premium — payment receipt", "Hello, I have paid for IELTS Pro Premium. Here is my receipt (attached). My name: ")}</div></div></li>
+        <li><span class="pm-n">03</span><div><b>Enter your activation code</b><p>Type the code you received to unlock Premium on this device.</p>
+          <form class="pm-code" id="codeForm" autocomplete="off"><input id="codeIn" placeholder="IELTS-XXXX-XXXX" maxlength="20" aria-label="Activation code" ${prem ? "disabled" : ""}><button class="btn btn-primary" ${prem ? "disabled" : ""}>Activate</button></form>
+          <p class="small" id="codeMsg">${prem ? "Premium is already active on this device." : ""}</p></div></li>
+      </ol>
+      <p class="small muted">Premium is activated on the device and browser where you enter your code. Keep your code to activate it again if you change device.</p>
+    </section>
+  </div>`;
+  const form = $("#codeForm");
+  if (form) form.onsubmit = async e => {
+    e.preventDefault();
+    const code = $("#codeIn").value.trim().toUpperCase().replace(/\s+/g, "");
+    const msg = $("#codeMsg");
+    if (!/^IELTS-[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(code)) { msg.textContent = "The code should look like IELTS-XXXX-XXXX."; msg.className = "small pm-err"; return; }
+    let ok = false;
+    try { ok = (PC.codeHashes || []).includes(await sha256Hex(code)); } catch { msg.textContent = "Activation needs a secure connection (https)."; return; }
+    if (!ok) { msg.textContent = "This code is not valid. Check it and try again."; msg.className = "small pm-err"; return; }
+    S.premium = { since: new Date().toISOString(), tail: code.slice(-4) }; save(); confetti();
+    toast("Premium activated — welcome!"); render();
+  };
+}
+
+function viewTeacher(p) {
+  const prem = isPremium();
+  const L = lvl() || LEVELS[0];
+  const tab = p === "speaking" ? "speaking" : "writing";
+  if (!prem) {
+    app.innerHTML = `<div class="${S.level ? "" : "wrap"}" style="${S.level ? "" : "padding-top:30px;padding-bottom:60px"}">
+      ${pageHero("writing", "Premium", "Teacher correction", "Send your Writing and Speaking to a teacher and get personal feedback on the four official criteria.")}
+      <div class="pm-lock">
+        <div class="pm-lock-ic">${ic("trophy", "lg")}</div>
+        <h2>This feature is part of Premium</h2>
+        <p class="muted">Your essays and recordings are corrected by a teacher, with clear advice on Task Achievement, Coherence, Vocabulary and Grammar. Premium costs ${priceTxt()} (${esc(PC.priceNote)}).</p>
+        <a class="btn btn-primary btn-lg" href="#/premium">See Premium ${ic("arrow", "arrow")}</a>
+      </div>
+    </div>`;
+    return;
+  }
+  S.teacherSent = S.teacherSent || [];
+  const draft = S.teacherDraft || {};
+  const tasks = L.writing;
+  const ref = `Premium code ending …${S.premium.tail || ""}`;
+  app.innerHTML = `<div class="${S.level ? "" : "wrap"}" style="${S.level ? "" : "padding-top:30px;padding-bottom:60px"}">
+    ${pageHero("writing", "Premium", "Teacher correction", "Choose Writing or Speaking, then send your work to the teacher in one click.")}
+    <div class="row" style="margin-bottom:18px"><div class="tabs">
+      <button data-tt="writing" class="${tab === "writing" ? "active" : ""}">Writing</button>
+      <button data-tt="speaking" class="${tab === "speaking" ? "active" : ""}">Speaking</button></div></div>
+    <div id="tz"></div>
+    ${S.teacherSent.length ? `<div class="card" style="margin-top:22px"><h3>My requests</h3>${S.teacherSent.slice().reverse().map(r => `<div class="plan-day"><span class="tag">${esc(r.kind)}</span><span class="txt">${esc(r.title)}</span><div class="spacer"></div><span class="muted small">${new Date(r.date).toLocaleDateString("en-GB")}</span></div>`).join("")}</div>` : ""}
+  </div>`;
+  $$("[data-tt]").forEach(b => b.onclick = () => { location.hash = `#/teacher/${b.dataset.tt}`; });
+  const z = $("#tz");
+  if (tab === "writing") {
+    const sel = Math.max(0, tasks.findIndex(t => t.prompt === draft.task));
+    z.innerHTML = `<div class="grid grid-2" style="align-items:start">
+      <div class="card"><h3>1. Choose the task</h3>
+        <select id="tTask" style="width:100%;margin:8px 0 14px">${tasks.map((t, i) => `<option value="${i}" ${i === sel ? "selected" : ""}>${esc(t.type)} — ${esc(t.prompt.slice(0, 60))}…</option>`).join("")}<option value="own">My own task</option></select>
+        <p class="book-prompt" id="tPrompt"></p>
+        <h3 style="margin-top:16px">2. Paste or write your answer</h3>
+        <textarea id="tText" style="min-height:260px" placeholder="Your essay…">${esc(draft.text || "")}</textarea>
+        <div class="row" style="margin-top:8px"><span class="tag" id="tWc">0 words</span></div>
+      </div>
+      <div class="card"><h3>3. Send to the teacher</h3>
+        <p class="muted">The message is prepared with your level, the task and your essay. The teacher replies with corrections on the 4 criteria.</p>
+        <div class="row" id="tSend"></div>
+        <div class="tipbox" style="margin-top:18px">Tip: run the automatic analysis on the Writing page first and fix the easy mistakes. The teacher can then focus on what really matters.</div>
+      </div></div>`;
+    const upd = () => {
+      const i = $("#tTask").value, t = i === "own" ? null : tasks[+i], txt = $("#tText").value.trim(), n = countWords(txt);
+      $("#tPrompt").textContent = t ? t.prompt : "Write the task you answered at the top of your essay.";
+      $("#tWc").textContent = `${n} word${n === 1 ? "" : "s"}`;
+      const subject = `IELTS Pro — Writing correction (${L.id})`;
+      const body = `${ref}\nLevel: ${L.id}\nTask: ${t ? t.type + " — " + t.prompt : "own task"}\nWords: ${n}\n\n${txt}`;
+      $("#tSend").innerHTML = n < 50 ? `<p class="muted small">Write at least 50 words to send your essay.</p>` : contactButtons(subject, body);
+      $$("#tSend a").forEach(a => a.onclick = () => { S.teacherSent.push({ kind: "Writing", title: t ? t.type : "Own task", date: new Date().toISOString() }); S.teacherDraft = null; save(); toast("Request prepared — send it in the window that opens"); });
+    };
+    $("#tTask").onchange = upd; $("#tText").oninput = () => { S.teacherDraft = { ...(S.teacherDraft || {}), text: $("#tText").value }; save(); upd(); };
+    upd();
+  } else {
+    const subject = `IELTS Pro — Speaking feedback (${L.id})`;
+    const body = `${ref}\nLevel: ${L.id}\nCue card: \n\nMy recording is attached.`;
+    z.innerHTML = `<div class="grid grid-2" style="align-items:start">
+      <div class="card"><h3>1. Record your answer</h3>
+        <ol class="method-list"><li>Open the Speaking page and choose a cue card.</li><li>Prepare for 1 minute, then speak for 2 minutes.</li><li>Click <b>Download my recording</b> under your result.</li></ol>
+        <a class="btn btn-ghost" href="#/speaking/0" style="margin-top:12px">Open Speaking practice ${ic("arrow", "sm arrow")}</a></div>
+      <div class="card"><h3>2. Send it to the teacher</h3>
+        <p class="muted">The message opens with your level and reference. <b>Attach the recording file</b> you downloaded, then send.</p>
+        <div class="row" id="sSend">${contactButtons(subject, body)}</div></div></div>`;
+    $$("#sSend a").forEach(a => a.onclick = () => { S.teacherSent = S.teacherSent || []; S.teacherSent.push({ kind: "Speaking", title: "Recording", date: new Date().toISOString() }); save(); });
+  }
+}
+
 /* =========================================================
    ROUTEUR
    ========================================================= */
 const ROUTES = {
   "": viewHome, test: viewTest, result: viewResult,
-  dashboard: viewDashboard, grammar: viewGrammar, vocab: p => viewVocab(p, "cards"), toolkit: viewToolkit, books: viewBooks, book: viewBook, about: viewAbout,
+  dashboard: viewDashboard, grammar: viewGrammar, vocab: p => viewVocab(p, "cards"), toolkit: viewToolkit, books: viewBooks, book: viewBook, about: viewAbout, premium: viewPremium, teacher: viewTeacher,
   reading: viewReading, listening: viewListening, writing: viewWriting, speaking: p => viewSpeaking(p, "2"), progress: viewProgress
 };
 const NEEDS_LEVEL = ["toolkit", "dashboard", "grammar", "vocab", "reading", "listening", "writing", "speaking", "progress"];
