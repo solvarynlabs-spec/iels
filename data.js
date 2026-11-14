@@ -279,7 +279,8 @@ const SKILL_NAMES = {
   "grammar": "Grammar",
   "vocab": "Vocabulary",
   "reading": "Reading",
-  "listening": "Listening"
+  "listening": "Listening",
+  "writing": "Writing"
 };
 
 const LINKERS = ["however","moreover","furthermore","in addition","therefore","consequently","as a result","nevertheless","on the other hand","in contrast","although","whereas","while","for example","for instance","such as","in conclusion","to conclude","overall","firstly","secondly","finally","despite","in spite of","thus","hence","similarly","likewise","because","since","due to","this means that","not only","in my opinion","i believe","it is argued that","on balance","to sum up","additionally","meanwhile","subsequently"];

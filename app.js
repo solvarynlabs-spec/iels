@@ -8,7 +8,7 @@ const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 const app = $("#app");
 const KEY = "ielts-pro-v1";
 const LETTERS = "ABCDE";
-const ICONS = { grammar: "book", vocab: "cards", reading: "open", listening: "headphones" };
+const ICONS = { grammar: "book", vocab: "cards", reading: "open", listening: "headphones", writing: "pen" };
 
 /* ---------------- Icônes (SVG au trait) ---------------- */
 const IC = {
@@ -172,23 +172,24 @@ function speak(text, { rate = 1, onend } = {}) {
 function stopSpeak() { speakToken++; if ("speechSynthesis" in window) speechSynthesis.cancel(); }
 if ("speechSynthesis" in window) speechSynthesis.getVoices();
 
-function audioWidget(text, maxPlays = 2, withSpeed = false) {
+function audioWidget(text, maxPlays = 2, withSpeed = false, onPlay = null) {
   const id = "a" + Math.random().toString(36).slice(2, 8);
   const html = `<div class="audio-box" id="${id}">
     <button class="play-btn" aria-label="Play audio">▶</button>
     <div class="wave">${"<i></i>".repeat(20)}</div>
-    <div><b>Listen carefully</b><div class="muted small plays">${maxPlays} play(s) left</div></div>
+    <div><b>Listen carefully</b><div class="muted small plays">${maxPlays > 0 ? maxPlays + " play(s) left" : "No plays left"}</div></div>
     ${withSpeed ? `<div class="spacer"></div><select class="speed" aria-label="Speed"><option value="0.8">Slow 0.8×</option><option value="1" selected>Normal 1×</option><option value="1.15">Fast 1.15×</option></select>` : ""}
   </div>`;
   const bind = () => {
     const box = $("#" + id); if (!box) return;
     let left = maxPlays, playing = false;
     const btn = $(".play-btn", box), wave = $(".wave", box), plays = $(".plays", box);
+    if (left <= 0) btn.disabled = true;
     const end = () => { playing = false; btn.classList.remove("playing"); wave.classList.remove("playing-wave"); btn.textContent = "▶"; btn.disabled = left <= 0; };
     btn.onclick = () => {
       if (playing) { stopSpeak(); end(); return; }
       if (left <= 0) return;
-      left--; plays.textContent = left > 0 ? `${left} play(s) left` : "No plays left";
+      left--; onPlay && onPlay(); plays.textContent = left > 0 ? `${left} play(s) left` : "No plays left";
       playing = true; btn.classList.add("playing"); wave.classList.add("playing-wave"); btn.textContent = "■";
       const rate = withSpeed ? +$(".speed", box).value : 0.95;
       speak(text, { rate, onend: end });
@@ -930,6 +931,7 @@ function demoResult(pct, c, n) {
 let T = null;
 function viewTest() {
   stopSpeak();
+  const done = S.fullTests || {};
   app.innerHTML = `<div class="wrap" style="padding-top:30px;padding-bottom:60px"><div class="card test-intro">
     <div class="ti-img"><img src="${photo("test", 1100)}" alt="London"></div>
     <div class="ti-body stagger">
@@ -940,32 +942,91 @@ function viewTest() {
         ${["grammar", "vocab", "reading", "listening"].map(s => `<div class="metric row" style="gap:12px"><span class="ic-box" style="width:38px;height:38px">${ic(ICONS[s])}</span><div><b>${SKILL_NAMES[s]}</b><div class="muted small">${PLACEMENT.questions.filter(q => q.s === s).length} questions</div></div></div>`).join("")}
       </div>
       <div class="hero-meta" style="margin:0 0 24px"><span>${ic("clock", "sm")} About 15 min</span><span>${ic("volume", "sm")} Turn your sound on</span></div>
-      <button class="btn btn-primary btn-lg" id="startTest">Start the test ${ic("arrow", "arrow")}</button>
+      <button class="btn btn-primary btn-lg" id="startTest">Start the quick test ${ic("arrow", "arrow")}</button>
     </div>
-  </div></div>`;
+  </div>
+  <section class="full-tests reveal">
+    <div class="sec-head"><span class="eyebrow">Full placement tests</span><h2>5 complete tests — like the real exam</h2>
+      <p>Each test has 4 timed parts: Listening (2 recordings, ${TEST_TIMES.listening} min), Reading (2 passages, ${TEST_TIMES.reading} min), Grammar &amp; Vocabulary (10 questions, ${TEST_TIMES.language} min) and a Writing task (${TEST_TIMES.writing} min, ${TEST_WRITING_MIN}+ words). About ${Object.values(TEST_TIMES).reduce((a, b) => a + b, 0)} minutes.</p></div>
+    <div class="ft-grid">${TESTS.map((t, i) => {
+      const r = done[t.id];
+      return `<div class="ft-card" style="--d:${i * .06}s">
+        <div class="ft-top"><span class="ft-id">Test ${t.id}</span>${r ? `<span class="tag">Band ${r.band.toFixed(1)}</span>` : `<span class="muted small">Not taken</span>`}</div>
+        <ul class="ft-parts">
+          <li>${ic("headphones", "sm")} ${esc(t.listening.map(l => l.title.replace(/^Part \d+ — /, "")).join(" · "))}</li>
+          <li>${ic("open", "sm")} ${esc(t.reading.map(r => r.title).join(" · "))}</li>
+          <li>${ic("book", "sm")} ${t.language.length} grammar &amp; vocabulary questions</li>
+          <li>${ic("pen", "sm")} Writing task 2</li>
+        </ul>
+        <button class="btn ${r ? "btn-ghost" : "btn-primary"} btn-sm" data-full="${i}">${r ? "Retake" : "Start"} test ${t.id} ${ic("arrow", "sm arrow")}</button>
+      </div>`;
+    }).join("")}</div>
+  </section></div>`;
+  const tick = () => {
+    if (!T) return;
+    const e = $("#elapsed"); if (e) e.textContent = fmt((Date.now() - T.start) / 1000);
+    if (T.full && T.secEnd) {
+      const left = (T.secEnd - Date.now()) / 1000, c = $("#countdown");
+      if (c) { c.textContent = fmt(left); c.classList.toggle("low", left < 60); }
+      if (left <= 0) timeUp();
+    }
+  };
+  const begin = qs => {
+    renderTestQ();
+    const iv = setInterval(tick, 1000);
+    onLeave(() => { clearInterval(iv); T = null; });
+  };
   $("#startTest").onclick = () => {
     T = { i: 0, ans: [], qs: PLACEMENT.questions.map(prep), start: Date.now(), sel: undefined };
-    renderTestQ();
-    const iv = setInterval(() => { const e = $("#elapsed"); if (e && T) e.textContent = fmt((Date.now() - T.start) / 1000); }, 1000);
-    onLeave(() => clearInterval(iv));
+    begin();
   };
+  $$("[data-full]", app).forEach(b => b.onclick = () => {
+    const t = TESTS[+b.dataset.full];
+    T = { i: 0, ans: [], qs: buildFullTest(t), start: Date.now(), sel: undefined, full: t, plays: {}, sec: null, secEnd: null };
+    begin();
+  });
+}
+
+/* Transforme un test complet (tests.js) en liste de questions pour le moteur du test */
+const SEC_OF = { listening: "listening", reading: "reading", grammar: "language", vocab: "language", writing: "writing" };
+function buildFullTest(t) {
+  const qs = [];
+  t.listening.forEach((part, pi) => part.qs.forEach(q => qs.push(prep({ ...q, s: "listening", noShuffle: q.fixed, audio: part.script, part: "L" + pi, partTitle: part.title }))));
+  t.reading.forEach((txt, pi) => txt.qs.forEach(q => qs.push(prep({ ...q, s: "reading", noShuffle: q.fixed, passage: { title: txt.title, text: txt.text }, part: "R" + pi, partTitle: "Passage " + (pi + 1) }))));
+  t.language.forEach(q => qs.push(prep({ ...q, noShuffle: q.fixed, part: "G", partTitle: "Grammar & Vocabulary" })));
+  qs.push({ s: "writing", writing: true, prompt: t.writing.prompt, part: "W", partTitle: "Writing task 2", d: 4 });
+  return qs;
+}
+function timeUp() {
+  stopSpeak();
+  const sec = T.sec;
+  if (sec === "writing") { const ta = $("#wText"); T.essay = ta ? ta.value : (T.essay || ""); finishTest(); return; }
+  while (T.i < T.qs.length && SEC_OF[T.qs[T.i].s] === sec) { T.ans[T.i] = false; T.i++; }
+  toast("Time is up for this part");
+  if (T.i < T.qs.length) { renderTestQ(); scrollTo(0, 0); } else finishTest();
 }
 
 function renderTestQ() {
   const q = T.qs[T.i], n = T.qs.length;
-  const audio = q.audio ? audioWidget(q.audio, 2) : null;
+  if (T.full) {
+    const sec = SEC_OF[q.s];
+    if (sec !== T.sec) { T.sec = sec; T.secEnd = Date.now() + TEST_TIMES[sec] * 60000; }
+  }
+  if (q.writing) return renderTestWriting(q);
+  const used = T.full && q.audio ? (T.plays[q.part] || 0) : 0;
+  const audio = q.audio ? audioWidget(q.audio, 2 - used, false, T.full ? () => { T.plays[q.part] = (T.plays[q.part] || 0) + 1; } : null) : null;
   const firstOfSection = T.i === 0 || T.qs[T.i - 1].s !== q.s;
+  const firstOfPart = T.full && (T.i === 0 || T.qs[T.i - 1].part !== q.part);
+  const passage = q.passage === true ? PLACEMENT.passage : q.passage;
   app.innerHTML = `<div class="wrap test-wrap fade-in" style="padding-bottom:60px">
-    <div class="test-head">
-      <div class="row"><span class="tag">${ic(ICONS[q.s], "sm")} ${SKILL_NAMES[q.s]}</span><span class="muted small" style="font-weight:700">Question ${T.i + 1} / ${n}</span></div>
-      <div class="row muted small" style="font-weight:700;gap:6px">${ic("clock", "sm")} <span id="elapsed">${fmt((Date.now() - T.start) / 1000)}</span></div>
-    </div>
-    <div class="progress-steps">${T.qs.map((_, k) => `<i class="${k < T.i ? "done" : k === T.i ? "cur" : ""}"></i>`).join("")}</div>
-    ${firstOfSection && q.s === "listening" ? `<div class="explain" style="margin-top:16px">🎧 <b>Listening section</b> — click ▶ to listen. You can play each recording twice.</div>` : ""}
+    ${testHead(q, n)}
+    ${firstOfSection && q.s === "listening" ? `<div class="explain" style="margin-top:16px">🎧 <b>Listening section</b> — click ▶ to listen. You can play each recording twice${T.full ? " (for all the questions of the part)" : ""}.</div>` : ""}
     ${firstOfSection && q.s === "reading" ? `<div class="explain" style="margin-top:16px">📖 <b>Reading section</b> — read the passage, then answer. The passage stays on screen for all 5 questions.</div>` : ""}
-    <div style="margin-top:18px" class="${q.passage ? "split" : ""}">
-      ${q.passage ? `<div class="passage"><h3>${esc(PLACEMENT.passage.title)}</h3>${paras(PLACEMENT.passage.text)}</div>` : ""}
-      <div class="card" style="${q.passage ? "" : "max-width:760px;margin:0 auto"}">
+    ${firstOfPart && !firstOfSection ? `<div class="explain" style="margin-top:16px">➡️ <b>New part:</b> ${esc(q.partTitle)}</div>` : ""}
+    <div style="margin-top:18px" class="${passage ? "split" : ""}">
+      ${passage ? `<div class="passage"><h3>${esc(passage.title)}</h3>${paras(passage.text)}</div>` : ""}
+      <div class="card" style="${passage ? "" : "max-width:760px;margin:0 auto"}">
+        ${T.full && q.audio ? `<div class="muted small" style="font-weight:700;margin-bottom:8px">${esc(q.partTitle)}</div>` : ""}
         ${audio ? audio.html : ""}
         <div class="question">${esc(q.q)}</div>
         <div class="options">${optionButtons(q)}</div>
@@ -987,18 +1048,57 @@ function renderTestQ() {
   };
 }
 
+function testHead(q, n) {
+  const label = q.writing ? "Writing" : SKILL_NAMES[q.s];
+  return `<div class="test-head">
+      <div class="row"><span class="tag">${ic(ICONS[q.s], "sm")} ${label}</span><span class="muted small" style="font-weight:700">${T.full ? `Test ${T.full.id} · ` : ""}Question ${T.i + 1} / ${n}</span></div>
+      <div class="row muted small" style="font-weight:700;gap:6px">${T.full ? `<span class="countdown-wrap">Time left in this part <b id="countdown">${fmt((T.secEnd - Date.now()) / 1000)}</b></span>` : `${ic("clock", "sm")} <span id="elapsed">${fmt((Date.now() - T.start) / 1000)}</span>`}</div>
+    </div>
+    <div class="progress-steps">${T.qs.map((_, k) => `<i class="${k < T.i ? "done" : k === T.i ? "cur" : ""}"></i>`).join("")}</div>`;
+}
+
+function renderTestWriting(q) {
+  const n = T.qs.length;
+  app.innerHTML = `<div class="wrap test-wrap fade-in" style="padding-bottom:60px">
+    ${testHead(q, n)}
+    <div class="explain" style="margin-top:16px">✍️ <b>Writing task 2</b> — write at least ${TEST_WRITING_MIN} words. Give your opinion and support it with reasons and examples. Leave a blank line between paragraphs.</div>
+    <div class="card" style="max-width:860px;margin:18px auto 0">
+      <div class="question">${esc(q.prompt)}</div>
+      <textarea id="wText" class="textarea" rows="14" placeholder="Write your answer here…" style="width:100%;margin-top:12px">${esc(T.essay || "")}</textarea>
+      <div class="row" style="margin-top:14px"><span class="muted small" style="font-weight:700"><span id="wCount">0</span> / ${TEST_WRITING_MIN} words</span><div class="spacer"></div><button class="btn btn-primary" id="nextBtn">Finish the test</button></div>
+    </div></div>`;
+  const ta = $("#wText"), wc = $("#wCount");
+  const upd = () => { T.essay = ta.value; wc.textContent = countWords(ta.value); };
+  ta.oninput = upd; upd(); ta.focus();
+  $("#nextBtn").onclick = () => {
+    if (countWords(ta.value) < 40 && !confirm("Your answer is very short. Finish the test anyway?")) return;
+    T.essay = ta.value; finishTest();
+  };
+}
+
 function finishTest() {
+  stopSpeak();
   const per = {}; let e = 0, t = 0;
   T.qs.forEach((q, i) => {
+    if (q.writing) return;
     const p = per[q.s] = per[q.s] || { e: 0, t: 0, c: 0, n: 0 };
     p.t += q.d; p.n++; t += q.d;
     if (T.ans[i]) { p.e += q.d; p.c++; e += q.d; }
   });
   const skills = {};
   Object.entries(per).forEach(([k, p]) => skills[k] = { pct: Math.round(p.e / p.t * 100), band: toBand(p.e / p.t), c: p.c, n: p.n });
-  const band = toBand(e / t);
-  S.placement = { band, level: bandToLevel(band), skills, date: new Date().toISOString(), duration: Math.round((Date.now() - T.start) / 1000), correct: T.ans.filter(Boolean).length, total: T.qs.length };
-  S.history.push({ band, level: S.placement.level, date: S.placement.date });
+  let band = toBand(e / t), writing = null;
+  if (T.full) {
+    const w = analyzeWriting(T.essay || "", TEST_WRITING_MIN);
+    writing = { band: w.band, wc: w.wc, fb: w.fb, prompt: T.full.writing.prompt };
+    skills.writing = { pct: Math.round(Math.max(0, Math.min(1, (w.band - 3.5) / 5)) * 100), band: w.band, c: w.wc, n: TEST_WRITING_MIN };
+    const sb = ["listening", "reading", "grammar", "vocab"].map(k => skills[k] ? skills[k].band : band);
+    band = Math.round(((sb[0] + sb[1] + (sb[2] + sb[3]) / 2 + w.band) / 4) * 2) / 2; // moyenne des 4 parties, comme la note globale IELTS
+  }
+  const qn = T.qs.filter(q => !q.writing);
+  S.placement = { band, level: bandToLevel(band), skills, date: new Date().toISOString(), duration: Math.round((Date.now() - T.start) / 1000), correct: qn.filter((q, i) => T.ans[T.qs.indexOf(q)]).length, total: qn.length, test: T.full ? T.full.id : null, writing };
+  S.history.push({ band, level: S.placement.level, date: S.placement.date, test: S.placement.test });
+  if (T.full) { S.fullTests = S.fullTests || {}; S.fullTests[T.full.id] = { band, date: S.placement.date }; }
   S.level = S.placement.level; // le parcours du niveau détecté est ouvert automatiquement
   save();
   T = null;
@@ -1013,7 +1113,7 @@ function skillEstimates() {
   // Writing et Speaking ne sont pas testés : on les estime à partir des compétences liées.
   return {
     grammar: sk("grammar"), vocab: sk("vocab"), reading: sk("reading"), listening: sk("listening"),
-    writing: Math.round((sk("grammar") + sk("vocab")) / 2) - 5,
+    writing: P.skills.writing ? P.skills.writing.pct : Math.round((sk("grammar") + sk("vocab")) / 2) - 5,
     speaking: Math.round((sk("listening") + sk("vocab")) / 2) - 5
   };
 }
@@ -1045,7 +1145,7 @@ function viewResult() {
           <div class="center"><div><div class="muted small">Estimated band</div><div class="band" id="bandNum">0.0</div><div class="muted small">out of 9.0</div></div></div>
         </div>
         <div>
-          <span class="tag">Test result · ${P.correct}/${P.total} · ${fmt(P.duration)}</span>
+          <span class="tag">${P.test ? `Full test ${P.test} · ` : ""}Test result · ${P.correct}/${P.total} · ${fmt(P.duration)}</span>
           <h1 class="display" style="margin-top:12px;font-size:clamp(2.4rem,4vw,3.4rem)">Level ${L.id} — <em>${L.name}</em></h1>
           <p class="muted" style="font-size:1.05rem">${L.goal}</p>
           <p><b>Your target:</b> band <b>${L.target.toFixed(1)}</b>.
@@ -1058,6 +1158,10 @@ function viewResult() {
         </div>
       </div>
     </div>
+    ${P.writing ? `<div class="card wr-result" style="padding:28px;margin-top:20px">
+      <div class="row" style="justify-content:space-between;align-items:flex-start;gap:16px"><div><span class="eyebrow">Writing task 2 · automatic feedback</span><h3 style="margin:8px 0 4px">${esc(P.writing.prompt)}</h3><p class="muted small">${P.writing.wc} words · estimate only — ask a teacher for a real correction.</p></div><div class="wr-band"><small>Writing band</small><b>${P.writing.band.toFixed(1)}</b></div></div>
+      <ul class="wr-fb">${P.writing.fb.map(([i, t]) => `<li><span>${i}</span>${esc(t)}</li>`).join("")}</ul>
+    </div>` : ""}
 
     <section class="improve-plan reveal">
       <div class="ip-head"><span class="eyebrow">Your improvement plan</span><h2>Work on your weakest skills first</h2>
