@@ -992,10 +992,31 @@ function finishTest() {
   const band = toBand(e / t);
   S.placement = { band, level: bandToLevel(band), skills, date: new Date().toISOString(), duration: Math.round((Date.now() - T.start) / 1000), correct: T.ans.filter(Boolean).length, total: T.qs.length };
   S.history.push({ band, level: S.placement.level, date: S.placement.date });
+  S.level = S.placement.level; // le parcours du niveau détecté est ouvert automatiquement
   save();
   T = null;
   location.hash = "#/result";
 }
+
+/* ---------- Plan d'amélioration : compétences de la plus faible à la plus forte ---------- */
+const BOOK_CHAPTER = { grammar: 1, vocab: 5, reading: 7, listening: 8, writing: 9, speaking: 10 };
+function skillEstimates() {
+  const P = S.placement; if (!P) return null;
+  const sk = k => P.skills[k] ? P.skills[k].pct : 50;
+  // Writing et Speaking ne sont pas testés : on les estime à partir des compétences liées.
+  return {
+    grammar: sk("grammar"), vocab: sk("vocab"), reading: sk("reading"), listening: sk("listening"),
+    writing: Math.round((sk("grammar") + sk("vocab")) / 2) - 5,
+    speaking: Math.round((sk("listening") + sk("vocab")) / 2) - 5
+  };
+}
+function improvementOrder() {
+  const est = skillEstimates();
+  const keys = MODULES.map(m => m.key);
+  if (!est) return keys;
+  return keys.slice().sort((a, b) => est[a] - est[b]);
+}
+const nextToImprove = () => { const order = improvementOrder(); return MODULES.find(m => m.key === order.find(k => !validated(k))) || MODULES[0]; };
 
 /* ---------- Résultat ---------- */
 function viewResult() {
@@ -1023,12 +1044,26 @@ function viewResult() {
           <p><b>Your target:</b> band <b>${L.target.toFixed(1)}</b>.
           Strongest skill: <b>${SKILL_NAMES[sorted[0][0]]}</b> · To work on: <b>${SKILL_NAMES[sorted[sorted.length - 1][0]]}</b>.</p>
           <div class="row" style="margin-top:16px">
-            <button class="btn btn-primary btn-lg" id="go">Start my ${L.id} course ${ic("arrow", "arrow")}</button>
+            <button class="btn btn-primary btn-lg" id="go">Start improving: ${modOf(improvementOrder()[0]).name} ${ic("arrow", "arrow")}</button>
             <a class="btn btn-ghost btn-lg" href="#/book/${L.id}" id="goBook">Read my free ${L.id} book</a>
           </div>
+          <p class="small muted" style="margin:12px 0 0">Your ${L.id} course is now open. We start with your weakest skill.</p>
         </div>
       </div>
     </div>
+
+    <section class="improve-plan reveal">
+      <div class="ip-head"><span class="eyebrow">Your improvement plan</span><h2>Work on your weakest skills first</h2>
+        <p class="muted">Based on your test, here is the order that will raise your band fastest at level ${L.id}. Writing and Speaking are estimated from your grammar, vocabulary and listening.</p></div>
+      <ol class="ip-steps">
+        ${(() => { const est = skillEstimates(); return improvementOrder().map((k, i) => { const m = modOf(k), v = Math.max(5, Math.min(100, est[k])); return `<li class="ip-step ${i === 0 ? "first" : ""}" style="--d:${i * .08}s">
+          <span class="ip-n">0${i + 1}</span>
+          <div class="ip-main"><b>${m.name}</b><span class="ip-tag">${i === 0 ? "Start here" : i < 3 ? "Priority" : "Keep practising"}${["writing", "speaking"].includes(k) ? " · estimated" : ""}</span>
+            <div class="bar"><div data-w="${v}" style="width:0;background:${pctColor(v)}"></div></div></div>
+          <div class="ip-actions"><a class="btn btn-sm ${i === 0 ? "btn-primary" : "btn-ghost"}" href="#/${m.route}/0">Practise</a><a class="btn btn-sm btn-ghost" href="#/book/${L.id}/${BOOK_CHAPTER[k]}">Book chapter</a></div>
+        </li>`; }).join(""); })()}
+      </ol>
+    </section>
 
     <div class="grid grid-2" style="margin-top:20px">
       <div class="card reveal"><h3>Results by skill</h3>
@@ -1045,7 +1080,7 @@ function viewResult() {
       </div>
     </div></div>`;
   const pick = id => { S.level = id; save(); confetti(); location.hash = "#/dashboard"; };
-  $("#go").onclick = () => pick(L.id);
+  $("#go").onclick = () => { S.level = L.id; save(); const m = nextToImprove(); location.hash = `#/${m.route}/${firstTodo(m.key)}`; };
   $("#goBook").onclick = () => { S.level = L.id; save(); };
   $$("[data-pick]").forEach(b => b.onclick = () => pick(b.dataset.pick));
   setTimeout(() => {
@@ -1151,7 +1186,8 @@ function viewDashboard() {
   const next = LEVELS[lvlIndex(L.id) + 1];
   const tip = L.tips[new Date().getDate() % L.tips.length];
   const progress = Math.round(doneItems / totalItems * 100);
-  const nextModule = MODULES.find(m => doneCount(m.key) < itemsOf(m.key).length) || MODULES.find(m => !validated(m.key));
+  // Prochain module : la compétence la plus faible (d'après le test) qui n'est pas encore validée
+  const nextModule = canUp ? null : nextToImprove();
   const week = lastDays(7), weekXP = week.reduce((a, d) => a + d.v, 0);
   const P = S.placement, band = P ? P.band : null;
   const sk = k => P && P.skills[k] ? P.skills[k].pct : undefined;
