@@ -67,12 +67,12 @@ const PH = {
 let flagId = 0;
 function flagUK() {
   const id = "uk" + (++flagId);
-  return `<svg class="flag-svg" viewBox="0 0 60 30" role="img" aria-label="Flag of the United Kingdom"><clipPath id="${id}a"><path d="M0,0 v30 h60 v-30 z"/></clipPath><clipPath id="${id}b"><path d="M30,15 h30 v15 z v15 h-30 z h-30 v-15 z v-15 h30 z"/></clipPath><g clip-path="url(#${id}a)"><path d="M0,0 v30 h60 v-30 z" fill="#012169"/><path d="M0,0 L60,30 M60,0 L0,30" stroke="#fff" stroke-width="6"/><path d="M0,0 L60,30 M60,0 L0,30" clip-path="url(#${id}b)" stroke="#C8102E" stroke-width="4"/><path d="M30,0 v30 M0,15 h60" stroke="#fff" stroke-width="10"/><path d="M30,0 v30 M0,15 h60" stroke="#C8102E" stroke-width="6"/></g></svg>`;
+  return `<svg class="flag-svg" viewBox="0 0 60 30" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Flag of the United Kingdom"><clipPath id="${id}a"><path d="M0,0 v30 h60 v-30 z"/></clipPath><clipPath id="${id}b"><path d="M30,15 h30 v15 z v15 h-30 z h-30 v-15 z v-15 h30 z"/></clipPath><g clip-path="url(#${id}a)"><path d="M0,0 v30 h60 v-30 z" fill="#012169"/><path d="M0,0 L60,30 M60,0 L0,30" stroke="#fff" stroke-width="6"/><path d="M0,0 L60,30 M60,0 L0,30" clip-path="url(#${id}b)" stroke="#C8102E" stroke-width="4"/><path d="M30,0 v30 M0,15 h60" stroke="#fff" stroke-width="10"/><path d="M30,0 v30 M0,15 h60" stroke="#C8102E" stroke-width="6"/></g></svg>`;
 }
 function flagDZ() {
-  return `<svg class="flag-svg" viewBox="0 0 900 600" role="img" aria-label="Flag of Algeria"><rect width="450" height="600" fill="#006233"/><rect x="450" width="450" height="600" fill="#fff"/><path d="M579.9 225a150 150 0 1 0 0 150a120 120 0 1 1 0-150" fill="#d21034"/><path d="M500 300l122-39.6-75.4 103.9v-128.6l75.4 103.9z" fill="#d21034"/></svg>`;
+  return `<svg class="flag-svg" viewBox="0 0 900 600" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Flag of Algeria"><rect width="450" height="600" fill="#006233"/><rect x="450" width="450" height="600" fill="#fff"/><path d="M579.9 225a150 150 0 1 0 0 150a120 120 0 1 1 0-150" fill="#d21034"/><path d="M500 300l122-39.6-75.4 103.9v-128.6l75.4 103.9z" fill="#d21034"/></svg>`;
 }
-const flagPair = (cls = "") => `<span class="flag-pair ${cls}"><span class="flag wave">${flagDZ()}</span><span class="flag wave">${flagUK()}</span></span>`;
+const flagPair = (cls = "") => `<span class="flag-pair ${cls}"><span class="flag">${flagDZ()}</span><span class="flag">${flagUK()}</span></span>`;
 
 const photo = (k, w = 1200) => `https://images.unsplash.com/photo-${PH[k]}?w=${w}&q=75&auto=format&fit=crop`;
 const pageHero = (img, tag, title, sub, right = "") => `<section class="page-hero">
@@ -728,18 +728,32 @@ function viewHome() {
     </section>
 
 
-    <section class="bridge reveal">
-      <div class="bridge-side"><div class="big-flag wave">${flagDZ()}</div><b>Algeria</b><span>Where you start</span></div>
-      <div class="bridge-mid">
-        <svg viewBox="0 0 400 140" class="bridge-svg" aria-hidden="true">
-          <path id="flightPath" d="M20 120 Q200 -40 380 120" fill="none" stroke="var(--line-2)" stroke-width="3" stroke-dasharray="8 10"/>
-          <path d="M20 120 Q200 -40 380 120" fill="none" stroke="var(--red)" stroke-width="3" class="flight-line"/>
-          <circle r="9" fill="var(--red)"><animateMotion dur="3.5s" repeatCount="indefinite" rotate="auto"><mpath href="#flightPath"/></animateMotion></circle>
-        </svg>
-        <h2>From Algeria to the United Kingdom</h2>
-        <p>Built for Algerian students aiming for British universities: an English-only course, real exam formats and British English audio.</p>
+    <section class="route reveal">
+      <div class="route-copy">
+        <span class="eyebrow">From Algeria to the UK</span>
+        <h2>Your path to a British university starts here</h2>
+        <p>IELTS Pro is built for Algerian students preparing for study in the United Kingdom: an English-only course, real exam formats and British English audio.</p>
+        <div class="route-facts">
+          <div><b>≈ 1,850 km</b><span>Aïn Beïda → London</span></div>
+          <div><b>6.0 – 7.0</b><span>band most UK universities ask for</span></div>
+        </div>
       </div>
-      <div class="bridge-side"><div class="big-flag wave">${flagUK()}</div><b>United Kingdom</b><span>Where IELTS can take you</span></div>
+      <div class="route-visual">
+        <div class="route-node">
+          <span class="route-flag">${flagDZ()}</span>
+          <b>Aïn Beïda</b><small>Algeria</small>
+        </div>
+        <svg class="route-svg" viewBox="0 0 300 120" aria-hidden="true">
+          <path id="routePath" d="M10 100 C 90 -10, 210 -10, 290 100" fill="none" stroke="var(--line-2)" stroke-width="2" stroke-dasharray="2 8" stroke-linecap="round"/>
+          <path d="M10 100 C 90 -10, 210 -10, 290 100" fill="none" stroke="var(--red)" stroke-width="2.5" class="route-line"/>
+          <g class="plane"><path d="M-9 -2 L4 -2 L9 0 L4 2 L-9 2 L-6 0 Z M-2 -2 L-5 -9 L-2 -9 L4 -2 Z M-2 2 L-5 9 L-2 9 L4 2 Z" fill="var(--red)"/>
+            <animateMotion dur="4.5s" repeatCount="indefinite" rotate="auto"><mpath href="#routePath"/></animateMotion></g>
+        </svg>
+        <div class="route-node">
+          <span class="route-flag">${flagUK()}</span>
+          <b>London</b><small>United Kingdom</small>
+        </div>
+      </div>
     </section>
     <a class="made-strip reveal" href="#/about">
       ${stampSVG("stampStrip")}
@@ -2052,16 +2066,19 @@ function viewAbout() {
         <a class="btn btn-ghost" href="${STUDIO.github}" target="_blank" rel="noopener">${STUDIO.name} on GitHub ${ic("arrow", "sm arrow")}</a>
       </div>
       <div class="ad-map reveal from-right">
-        <svg viewBox="0 0 300 300" class="map-svg" aria-label="Map of Algeria with Aïn Beïda marked">
-          <path class="dz-shape" d="M60 40 L150 22 L205 28 L232 22 L248 46 L236 82 L252 120 L262 168 L282 196 L262 238 L198 278 L160 282 L60 186 L40 160 L46 110 L34 88 Z"/>
-          <circle class="pin-pulse" cx="214" cy="54" r="10"/>
-          <circle class="pin-pulse p2" cx="214" cy="54" r="10"/>
-          <circle cx="214" cy="54" r="6" fill="var(--red)" stroke="#fff" stroke-width="2"/>
-          <text x="200" y="40" text-anchor="end" font-size="13" font-weight="800" class="pin-label">Aïn Beïda</text>
-          <text x="150" y="160" text-anchor="middle" font-size="22" font-weight="800" class="map-name">ALGERIA</text>
+        <div class="map-head"><span class="flag">${flagDZ()}</span><div><b>Aïn Beïda</b><span>Oum El Bouaghi · Algeria · 35.80° N, 7.39° E</span></div></div>
+        <svg viewBox="-10 -14 420 420" class="map-svg" aria-label="Map of Algeria showing Aïn Beïda in the north-east">
+          <text x="200" y="2" text-anchor="middle" class="sea-label">MEDITERRANEAN SEA</text>
+          <path class="dz-shape" d="M384 291 L323 329.4 L271.5 369 L246.4 378 L226.7 379.9 L226.5 367.1 L218.3 363.8 L207.2 358.1 L202.9 348.6 L142.9 304.7 L82.9 260.7 L16 211.9 L16.3 208 L16.3 206.7 L16.2 182.8 L44.9 167.9 L62.7 164.8 L77.2 159.4 L84 149.3 L104.9 141.4 L105.6 126.4 L115.9 124.7 L124 117.2 L147.2 113.8 L150.5 106 L145.8 101.7 L139.7 80.5 L138.6 68.2 L131.9 55.3 L149 44.3 L168.2 40.8 L179.5 32.5 L196.6 26.3 L226.8 22.7 L256.2 21.1 L265.2 24.1 L281.9 16.2 L300.9 16 L308.2 20.7 L320.3 19.5 L316.7 29.8 L319.5 49 L315.4 65.6 L304.4 76.9 L306 92.1 L320.5 104.1 L320.7 108.9 L331.6 117.1 L339.2 153.2 L345 171 L345.9 180.4 L342.8 196.8 L344.1 206 L341.8 217 L343.4 229.7 L336.3 238.1 L346.8 252.8 L347.5 261.5 L353.8 272.7 L362.1 269 L376.2 278.4 L384 291 Z"/>
+          <text x="215" y="235" text-anchor="middle" class="map-name">ALGERIA</text>
+          <circle cx="224.9" cy="23.3" r="4" class="city-dot"/>
+          <text x="219" y="40" text-anchor="end" class="city-label">Algiers</text>
+          <circle class="pin-pulse" cx="302" cy="42.6" r="9"/>
+          <circle class="pin-pulse p2" cx="302" cy="42.6" r="9"/>
+          <circle cx="302" cy="42.6" r="6.5" fill="var(--red)" stroke="#fff" stroke-width="2.5"/>
+          <g class="pin-tag"><rect x="318" y="48" width="86" height="26" rx="3"/><text x="361" y="66" text-anchor="middle">Aïn Beïda</text></g>
         </svg>
-        <div class="map-flags"><span class="flag wave">${flagDZ()}</span><span class="map-arrow">→</span><span class="flag wave">${flagUK()}</span></div>
-        <p class="small muted" style="text-align:center;margin:8px 0 0">Simplified map, for illustration.</p>
+        <p class="map-src">Borders: Natural Earth (public domain).</p>
       </div>
     </section>
 

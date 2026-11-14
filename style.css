@@ -1061,3 +1061,58 @@ button.crit:hover .crit-go, button.crit:focus-visible .crit-go { opacity: 1; tra
 .made-strip span { color: #cfcfcf; }
 .made-strip .btn { pointer-events: none; }
 @media (max-width: 720px) { .made-strip { grid-template-columns: 80px 1fr; } .made-strip .stamp { width: 80px; } .made-strip .btn { grid-column: 1 / -1; } }
+
+/* =========================================================
+   DRAPEAUX NETS (sans reflets ni bandes)
+   ========================================================= */
+.flag::after, .big-flag::after { content: none !important; display: none !important; }
+.flag, .wave { animation: none !important; transform: none !important; }
+.flag { overflow: hidden; border-radius: 2px; box-shadow: 0 0 0 1px rgba(0, 0, 0, .12), 0 2px 6px rgba(0, 0, 0, .18); }
+.big-flag svg[viewBox="0 0 60 30"] { transform: none !important; }
+.flag-svg { width: 100%; height: 100%; display: block; }
+
+/* =========================================================
+   SECTION ALGÉRIE → ROYAUME-UNI
+   ========================================================= */
+.route { display: grid; grid-template-columns: 1fr 1.15fr; gap: 50px; align-items: center; margin: 80px 0 20px; padding: 48px; background: var(--surface); box-shadow: var(--shadow); border-top: 5px solid var(--red); }
+@media (max-width: 900px) { .route { grid-template-columns: 1fr; padding: 32px 22px; gap: 34px; } }
+.route-copy h2 { font-size: clamp(1.9rem, 3.2vw, 2.6rem); font-weight: 800; margin: 12px 0 14px; line-height: 1.1; }
+.route-copy p { color: var(--muted); margin: 0; }
+.route-facts { display: grid; grid-template-columns: 1fr 1fr; gap: 0; margin-top: 26px; border-top: 1px solid var(--line); }
+.route-facts > div { padding: 18px 18px 0 0; }
+.route-facts > div + div { padding-left: 18px; border-left: 1px solid var(--line); }
+.route-facts b { display: block; font-size: 1.7rem; font-weight: 800; color: var(--red); line-height: 1.1; }
+.route-facts span { color: var(--muted); font-size: .9rem; font-weight: 600; }
+
+.route-visual { display: grid; grid-template-columns: auto 1fr auto; align-items: end; gap: 6px; padding: 34px 26px 26px; background: var(--bg-2); position: relative; }
+.route-node { display: flex; flex-direction: column; align-items: center; text-align: center; width: 120px; }
+.route-flag { width: 76px; height: 76px; border-radius: 50%; overflow: hidden; display: block; box-shadow: 0 0 0 4px var(--surface), 0 0 0 5px var(--line-2), 0 14px 26px -12px rgba(0, 0, 0, .45); margin-bottom: 14px; transition: transform .45s var(--ease); }
+.route-visual:hover .route-flag { transform: translateY(-4px); }
+.route-node b { font-size: 1.15rem; font-weight: 800; }
+.route-node small { color: var(--muted); font-weight: 600; }
+.route-svg { width: 100%; height: auto; align-self: center; margin-bottom: 40px; overflow: visible; }
+.route-line { stroke-dasharray: 420; stroke-dashoffset: 420; }
+.route.in .route-line { animation: routeDraw 2.4s .4s var(--ease) forwards; }
+@keyframes routeDraw { to { stroke-dashoffset: 0; } }
+@media (max-width: 560px) { .route-node { width: 86px; } .route-flag { width: 58px; height: 58px; } .route-node b { font-size: 1rem; } .route-visual { padding: 26px 12px 18px; } }
+
+/* =========================================================
+   CARTE DE L'ALGÉRIE
+   ========================================================= */
+.ad-map { background: var(--surface); padding: 26px; box-shadow: var(--shadow); border-top: 5px solid var(--red); }
+.map-head { display: flex; align-items: center; gap: 14px; padding-bottom: 16px; margin-bottom: 8px; border-bottom: 1px solid var(--line); }
+.map-head .flag { width: 42px; height: 28px; flex: none; }
+.map-head b { display: block; font-size: 1.2rem; font-weight: 800; }
+.map-head span { color: var(--muted); font-size: .85rem; font-weight: 600; }
+.map-svg { width: 100%; max-width: 400px; display: block; margin: 0 auto; }
+.dz-shape { fill: var(--bg-2); stroke: var(--ink); stroke-width: 1.6; stroke-linejoin: round; stroke-dasharray: 1600; stroke-dashoffset: 1600; transition: fill .8s; }
+.ad-map.in .dz-shape { animation: draw 2.6s var(--ease) forwards; fill: color-mix(in srgb, #006233 10%, var(--bg-2)); }
+.sea-label { font-size: 10px; letter-spacing: .32em; font-weight: 700; fill: #3b82c4; opacity: .7; }
+.map-name { font-size: 20px; font-weight: 800; letter-spacing: .35em; fill: var(--muted); opacity: .6; }
+.city-dot { fill: var(--ink); }
+.city-label { font-size: 12px; font-weight: 700; fill: var(--muted); }
+.pin-pulse { fill: var(--red); opacity: .5; transform-box: fill-box; transform-origin: center; animation: pinPulse 2s ease-out infinite; }
+.pin-pulse.p2 { animation-delay: 1s; }
+.pin-tag rect { fill: var(--red); }
+.pin-tag text { fill: #fff; font-size: 13px; font-weight: 800; }
+.map-src { text-align: right; color: var(--muted); font-size: .75rem; margin: 6px 0 0; }
