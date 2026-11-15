@@ -706,13 +706,13 @@ function viewHome() {
       <div class="stagger">
         <span class="eyebrow">IELTS Academic preparation</span>
         <h1 class="display">Prepare for IELTS the way examiners mark it.</h1>
-        <p class="lead">A 15-minute placement test, then ${exercises} corrected exercises aligned with the official marking criteria, from band 4 to band 8.</p>
+        <p class="lead">A 15-minute placement test or 5 full timed tests (Listening, Reading, Grammar, Writing), then ${exercises} corrected exercises aligned with the official marking criteria, from band 4 to band 8.</p>
         <div class="row" style="margin-top:30px">
-          ${has ? `<a class="btn btn-primary btn-lg" href="#/dashboard">Continue my course ${ic("arrow", "arrow")}</a><a class="btn btn-ghost btn-lg" href="#/test">Retake the test</a>`
-                : `<a class="btn btn-primary btn-lg" href="#/test">Take the placement test ${ic("arrow", "arrow")}</a><button class="btn btn-ghost btn-lg" data-scroll="format">Understand the exam</button>`}
+          ${has ? `<a class="btn btn-primary btn-lg" href="#/dashboard">Continue my course ${ic("arrow", "arrow")}</a><a class="btn btn-ghost btn-lg" href="#/test">Take a full test</a>`
+                : `<a class="btn btn-primary btn-lg" href="#/test">Take the placement test ${ic("arrow", "arrow")}</a><a class="btn btn-ghost btn-lg" href="#/test">5 full tests</a>`}
         </div>
         <div class="hero-facts">
-          <div><b>21</b><span>questions to find your level</span></div>
+          <div><b>5</b><span>full timed placement tests</span></div>
           <div><b>${exercises}</b><span>corrected exercises</span></div>
           <div><b>4</b><span>official criteria analysed</span></div>
         </div>
@@ -1071,7 +1071,8 @@ function renderTestWriting(q) {
   const upd = () => { T.essay = ta.value; wc.textContent = countWords(ta.value); };
   ta.oninput = upd; upd(); ta.focus();
   $("#nextBtn").onclick = () => {
-    if (countWords(ta.value) < 40 && !confirm("Your answer is very short. Finish the test anyway?")) return;
+    const btn = $("#nextBtn");
+    if (countWords(ta.value) < 40 && !btn.dataset.sure) { btn.dataset.sure = "1"; btn.textContent = "Finish anyway"; toast("Your answer is very short. Click again to finish anyway."); return; }
     T.essay = ta.value; finishTest();
   };
 }
@@ -1728,7 +1729,8 @@ function viewProgress() {
       </div>
     </div></div>`;
   $("#reset").onclick = () => {
-    if (!confirm("Delete all your progress (test, scores, essays)? This cannot be undone.")) return;
+    const btn = $("#reset");
+    if (!btn.dataset.sure) { btn.dataset.sure = "1"; btn.textContent = "Click again to delete everything"; toast("This deletes your test, scores and essays. It cannot be undone."); return; }
     const theme = S.theme; S = defaults(); S.theme = theme; save(); location.hash = "#/"; render();
   };
 }
