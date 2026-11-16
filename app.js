@@ -227,12 +227,12 @@ function toggleTheme() {
   save(); applyTheme(); updateTop();
 }
 
-const PAGE_TITLES = { dashboard: "Dashboard", grammar: "Grammar", vocab: "Vocabulary", reading: "Reading", listening: "Listening", writing: "Writing", speaking: "Speaking", progress: "My progress", toolkit: "Toolkit", books: "Collins books", book: "My study book", plans: "My plan", premium: "My plan", live: "Live classes", account: "My account", teacher: "Teacher correction" };
+const PAGE_TITLES = { dashboard: "Dashboard", grammar: "Grammar", vocab: "Vocabulary", reading: "Reading", listening: "Listening", writing: "Writing", speaking: "Speaking", progress: "My progress", toolkit: "Toolkit", books: "Collins books", book: "My study book", plans: "My plan", premium: "My plan", live: "Live classes", teach: "Teacher space", admin: "Admin", account: "My account", teacher: "Teacher correction" };
 const brandHTML = `<a href="#/" class="brand"><span class="brand-logo">i</span><span>IELTS<b>Pro</b></span></a>`;
 
 function updateTop() {
   const [route, p] = location.hash.replace(/^#\/?/, "").split("/");
-  const isApp = !!S.level && (NEEDS_LEVEL.includes(route) || ["books", "book", "premium", "plans", "live", "teacher", "account"].includes(route));
+  const isApp = !!S.level && (NEEDS_LEVEL.includes(route) || ["books", "book", "premium", "plans", "live", "teacher", "account", "teach", "admin"].includes(route));
   document.body.classList.toggle("appmode", isApp);
   document.body.classList.toggle("public", !isApp);
   const dark = document.documentElement.dataset.theme === "dark";
@@ -254,6 +254,8 @@ function updateTop() {
       ${link("book", "open", "My study book", null, "#e4002b")}
       ${link("books", "book", "Collins books", null, "#e4002b")}
       <div class="side-label">Premium</div>
+      ${isAdmin() ? link("admin", "grid", "Admin dashboard", null, "#141414") : ""}
+      ${isAdmin() || isTeacherAcc() ? link("teach", "group", "Teacher space", null, "#0ea5e9") : ""}
       ${link("live", "play", "Live classes", null, "#e4002b")}
       ${link("teacher", "pen", "Teacher correction", null, "#e4002b")}
       ${link("plans", "star", planRank() ? "My plan" : "Plans", null, "#e4002b")}
@@ -276,7 +278,7 @@ function updateTop() {
     $("#sidebar").innerHTML = "";
     const onHome = route === "";
     $("#topbar").innerHTML = `${brandHTML}
-      <nav class="pubnav">${onHome ? [["format", "The exam"], ["score", "Score calculator"], ["criteres", "Criteria"], ["modules", "Practice"], ["faq", "FAQ"]].map(([id, n]) => `<button data-scroll="${id}">${n}</button>`).join("") : `<button data-go="">Home</button>`}<button data-go="books">Books</button><button data-go="about">About</button><button data-go="live">Live classes</button><button data-go="plans" class="nav-premium">Plans</button></nav>
+      <nav class="pubnav">${onHome ? [["format", "The exam"], ["score", "Score calculator"], ["criteres", "Criteria"], ["modules", "Practice"], ["faq", "FAQ"]].map(([id, n]) => `<button data-scroll="${id}">${n}</button>`).join("") : `<button data-go="">Home</button>`}<button data-go="books">Books</button><button data-go="about">About</button><button data-go="live">Live classes</button>${isAdmin() ? `<button data-go="admin">Admin</button>` : isTeacherAcc() ? `<button data-go="teach">Teacher space</button>` : `<button data-go="teach">Teach</button>`}<button data-go="plans" class="nav-premium">Plans</button></nav>
       <div class="top-actions">${flagPair("sm")}${themeBtn}${fbUser ? `<a class="avatar" href="#/account" title="My account">${initials(fbUser.displayName || fbUser.email)}</a>` : `<a class="btn btn-ghost btn-sm auth-link" href="#/login">Log in</a>`}
         ${S.level ? `<a class="btn btn-dark btn-sm" href="#/dashboard">My dashboard ${ic("arrow", "sm arrow")}</a>` : route === "test" ? "" : `<a class="btn btn-primary btn-sm" href="#/test">Take the test ${ic("arrow", "sm arrow")}</a>`}
       </div>`;
@@ -2374,7 +2376,7 @@ const PC = typeof PREMIUM_CONFIG !== "undefined" ? PREMIUM_CONFIG : { price: 500
 const PLAN_LIST = typeof PLANS !== "undefined" ? PLANS : [];
 const planOf = id => PLAN_LIST.find(p => p.id === id);
 // Rang de l'offre active : 0 = aucune, 1 = niveau, 2 = préparation, 3 = préparation + professeur
-const planRank = () => S.ownerTest ? 3 : S.plan && planOf(S.plan.id) ? planOf(S.plan.id).rank : (S.premium && S.premium.since ? 3 : 0);
+const planRank = () => S.ownerTest || isAdmin() ? 3 : PROFILE && planOf(PROFILE.plan) ? planOf(PROFILE.plan).rank : 0;
 const isPremium = () => planRank() >= 3;
 const LIVE_LIST = typeof LIVE_PACKS !== "undefined" ? LIVE_PACKS : [];
 const LC = typeof LIVE_CONFIG !== "undefined" ? LIVE_CONFIG : { teacher: "Your teacher", minutes: 60, closedDays: [5], slots: ["17:00"], roomBase: "https://meet.jit.si/" };
@@ -2420,7 +2422,7 @@ function openPayForm(plan) {
 
 // Page des offres : affichée après la création du compte, avant le test
 function viewPlans(p) {
-  const rank = planRank(), cur = S.plan && planOf(S.plan.id);
+  const rank = planRank(), cur = PROFILE && planOf(PROFILE.plan);
   const canPay = !!(PC.sofizpayAccount || PC.sofizpayLink);
   const backFromPay = p === "paid";
   const pending = S.payStarted && offerOf(S.payStarted.plan);
@@ -2431,7 +2433,7 @@ function viewPlans(p) {
       <span class="eyebrow">${name ? `Welcome, ${esc(name)}` : "Choose your plan"}</span>
       <h1 class="display">What do you want to do?</h1>
       <p class="lead">Only want your IELTS band? Or want to prepare for the exam at your level? Choose a plan: you take the test right after, and the course for your level opens automatically.</p>
-      ${cur ? `<div class="plan-current">${ic("check", "sm")} Your plan: <b>${esc(cur.name)}</b> · since ${new Date(S.plan.since).toLocaleDateString("en-GB")}${!S.level ? ` · <a href="#/test">Take the test now →</a>` : ` · <a href="#/dashboard">Open my course →</a>`}</div>` : ""}
+      ${cur ? `<div class="plan-current">${ic("check", "sm")} Your plan: <b>${esc(cur.name)}</b> · since ${new Date(PROFILE.plan_since).toLocaleDateString("en-GB")}${!S.level ? ` · <a href="#/test">Take the test now →</a>` : ` · <a href="#/dashboard">Open my course →</a>`}</div>` : ""}
     </section>
 
     <section class="plan-grid">
@@ -2471,7 +2473,7 @@ function viewPlans(p) {
           ${canPay ? `<button class="btn ${pk.best ? "btn-primary" : "btn-dark"}" data-live="${pk.id}">Book · ${money(pk.price)} ${ic("arrow", "sm arrow")}</button>` : `<button class="btn btn-ghost" disabled>Online payment coming soon</button>`}
         </article>`).join("")}
       </div>
-      ${liveState().credits || liveState().sessions.length ? `<p class="plan-current" style="display:flex">${ic("check", "sm")} You have <b>${liveState().credits}</b> live session(s) left · <a href="#/live">Book or join a class →</a></p>` : ""}
+      ${PROFILE && PROFILE.live_credits ? `<p class="plan-current" style="display:flex">${ic("check", "sm")} You have <b>${PROFILE.live_credits}</b> live session(s) left · <a href="#/live">Book or join a class →</a></p>` : ""}
     </section>
 
     <section class="pm-steps">
@@ -2502,28 +2504,20 @@ function viewPlans(p) {
     if (/^SOLV-\d{6}$/.test(code)) {
       let oh = ""; try { oh = await sha256Hex(code); } catch { }
       if (typeof OWNER_PIN_HASH !== "undefined" && oh === OWNER_PIN_HASH) {
-        S.ownerTest = { since: new Date().toISOString() }; const LS = liveState(); if (LS.credits < 10) LS.credits = 10;
-        save(); toast("Test mode ON — everything is unlocked on this device"); location.hash = "#/owner"; return;
+        S.ownerTest = { since: new Date().toISOString() }; save(); toast("Test mode ON — everything is unlocked on this device"); location.hash = "#/owner"; return;
       }
       msg.textContent = "Wrong owner PIN."; msg.className = "small pm-err"; return;
     }
-    if (!/^(IELTS|LIVE)-[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(code)) { msg.textContent = "The code should look like IELTS-XXXX-XXXX or LIVE-XXXX-XXXX."; msg.className = "small pm-err"; return; }
-    let h; try { h = await sha256Hex(code); } catch { msg.textContent = "Activation needs a secure connection (https)."; msg.className = "small pm-err"; return; }
-    const pk = LIVE_LIST.find(x => (x.codeHashes || []).includes(h));
-    if (pk) {
-      const L = liveState();
-      if (L.used.includes(h)) { msg.textContent = "This code was already used on this account."; msg.className = "small pm-err"; return; }
-      L.used.push(h); L.credits += pk.sessions; S.payStarted = null; save(); confetti();
-      toast(`${pk.sessions} live session(s) added!`); location.hash = "#/live"; return;
-    }
-    const pl = PLAN_LIST.slice().sort((a, b) => b.rank - a.rank).find(x => (x.codeHashes || []).includes(h));
-    if (!pl) { msg.textContent = "This code is not valid. Check it and try again."; msg.className = "small pm-err"; return; }
-    if (pl.rank <= planRank()) { msg.textContent = `Your plan already includes ${pl.name}.`; msg.className = "small pm-err"; return; }
-    S.plan = { id: pl.id, since: new Date().toISOString(), tail: code.slice(-4) };
-    if (pl.rank >= 3) S.premium = { since: S.plan.since, tail: S.plan.tail };
-    S.payStarted = null; save(); confetti();
-    toast(`${pl.name} activated!`);
-    location.hash = S.level ? (pl.rank >= 2 ? "#/dashboard" : "#/result") : "#/test";
+    if (!PROFILE) { toast("Log in first to use your code"); location.hash = "#/login"; return; }
+    if (!/^(IELTS|LIVE|TEACH)-[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(code)) { msg.textContent = "The code should look like IELTS-XXXX-XXXX, LIVE-XXXX-XXXX or TEACH-XXXX-XXXX."; msg.className = "small pm-err"; return; }
+    const btn = $("#codeForm button"); btn.disabled = true; msg.textContent = "Checking your code…"; msg.className = "small";
+    try {
+      const d = await api("redeem", { code });
+      setProfile(d.profile); S.payStarted = null; save(); confetti();
+      if (d.kind === "live") { toast(`${d.value} live session(s) added!`); location.hash = "#/live"; }
+      else if (d.kind === "teacher") { toast(`Teacher subscription active for ${d.value} month(s)!`); location.hash = "#/teach"; }
+      else { toast(`${planOf(d.value).name} activated!`); location.hash = S.level ? (planRank() >= 2 ? "#/dashboard" : "#/result") : "#/test"; }
+    } catch (err) { msg.textContent = err.message; msg.className = "small pm-err"; btn.disabled = false; }
   };
 }
 const viewPremium = viewPlans;
@@ -2575,97 +2569,21 @@ const fmtSession = ss => sessionStart(ss).toLocaleDateString("en-GB", { weekday:
 function sessionMessage(ss) {
   return `Hello, I booked an IELTS Pro live class.\n\nStudent: ${fbUser ? fbUser.displayName : ""} (${fbUser ? fbUser.email : ""})\nLevel: ${S.level || "not tested yet"}\nDate: ${fmtSession(ss)} (${LC.minutes} min)\nTopic: ${ss.topic}\nVideo room: ${roomUrl(ss)}\n\nPlease confirm. Thank you!`;
 }
-function viewLive(p) {
-  const L = liveState(), now = Date.now();
-  const days = []; for (let i = 1; days.length < 12 && i < 30; i++) { const d = new Date(); d.setDate(d.getDate() + i); if (!(LC.closedDays || []).includes(d.getDay())) days.push(d); }
-  const taken = new Set(L.sessions.filter(x => x.status !== "cancelled").map(x => x.day + " " + x.slot));
-  const upcoming = L.sessions.filter(x => x.status !== "cancelled" && sessionStart(x).getTime() + LC.minutes * 60000 > now).sort((a, b) => sessionStart(a) - sessionStart(b));
-  const past = L.sessions.filter(x => x.status !== "cancelled" && sessionStart(x).getTime() + LC.minutes * 60000 <= now);
-  const topics = ["Speaking practice", "Writing review", "Listening & Reading strategies", "Full mock test", "My questions"];
-  app.innerHTML = `<div class="${S.level ? "" : "wrap"}" style="${S.level ? "" : "padding-top:30px;padding-bottom:60px"}">
-    <section class="live-hero fade-in">
-      <div>
-        <span class="eyebrow" style="color:#fff">Live classes · video call</span>
-        <h1 class="display">Your class with a real teacher.</h1>
-        <p>Book a ${LC.minutes}-minute video class, send the request to your teacher, then join the class room at the time of your session. Nothing to install: it opens in your browser, on phone or computer.</p>
-        <div class="live-credits"><b>${L.credits}</b><span>session(s) left</span>${L.credits ? "" : `<a class="btn btn-white btn-sm" href="#/plans/live">Buy live sessions ${ic("arrow", "sm arrow")}</a>`}</div>
-      </div>
-      ${liveCallMock()}
-    </section>
-
-    ${upcoming.length ? `<section class="live-block"><h2 class="h2-sec">My next classes</h2><div class="sess-list">${upcoming.map(ss => {
-      const st = sessionStart(ss).getTime(), open = now >= st - 15 * 60000;
-      const mins = Math.round((st - now) / 60000);
-      const when = mins > 1440 ? `in ${Math.round(mins / 1440)} day(s)` : mins > 60 ? `in ${Math.round(mins / 60)} h` : mins > 0 ? `in ${mins} min` : "now";
-      return `<article class="sess-card ${open ? "open" : ""}">
-        <div class="sess-date"><b>${sessionStart(ss).getDate()}</b><span>${sessionStart(ss).toLocaleDateString("en-GB", { month: "short" })}</span></div>
-        <div class="sess-info"><b>${esc(fmtSession(ss))}</b><span>${esc(ss.topic)} · ${LC.minutes} min · <em>${when}</em></span><code>${esc(roomUrl(ss).replace("https://", ""))}</code></div>
-        <div class="sess-actions">
-          <a class="btn ${open ? "btn-primary" : "btn-dark"} btn-sm" href="${roomUrl(ss)}" target="_blank" rel="noopener">${ic("play", "sm")} ${open ? "Join the class now" : "Open the class room"}</a>
-          <button class="btn btn-ghost btn-sm" data-send="${ss.id}">Send to teacher</button>
-          <button class="link-btn" data-cancel="${ss.id}">Cancel</button>
-        </div>
-      </article>`;
-    }).join("")}</div></section>` : ""}
-
-    <section class="live-block live-book">
-      <h2 class="h2-sec">Book a class</h2>
-      ${L.credits ? `<form id="bookForm">
-        <p class="small muted" style="margin:0">1. Choose a day</p>
-        <div class="chip-row" id="dayRow">${days.map((d, i) => `<label class="chip"><input type="radio" name="day" value="${isoDay(d)}" ${i === 0 ? "checked" : ""}><span><small>${d.toLocaleDateString("en-GB", { weekday: "short" })}</small><b>${d.getDate()}</b><small>${d.toLocaleDateString("en-GB", { month: "short" })}</small></span></label>`).join("")}</div>
-        <p class="small muted">2. Choose a time</p>
-        <div class="chip-row" id="slotRow"></div>
-        <p class="small muted">3. What do you want to work on?</p>
-        <div class="chip-row">${topics.map((t, i) => `<label class="chip chip-wide"><input type="radio" name="topic" value="${esc(t)}" ${i === 0 ? "checked" : ""}><span>${esc(t)}</span></label>`).join("")}</div>
-        <button class="btn btn-primary btn-lg" type="submit">Book this class · 1 session ${ic("arrow", "arrow")}</button>
-      </form>` : `<div class="pm-lock" style="margin:0"><h3>No live session left</h3><p class="muted">Buy a session or a pack to book your video class with a teacher.</p><a class="btn btn-primary" href="#/plans/live">See live class prices ${ic("arrow", "sm arrow")}</a></div>`}
-    </section>
-
-    <section class="live-block live-check">
+function camTestHTML() {
+  return `<section class="live-block live-check">
       <div><h2 class="h2-sec">Check your camera and microphone</h2><p class="muted">Test them before your class, so you don't lose time. Allow access when your browser asks.</p>
         <button class="btn btn-dark" id="camTest">${ic("play", "sm")} Start the test</button><p class="small" id="camMsg"></p></div>
       <div class="cam-box"><video id="camVid" playsinline muted></video><div class="mic-meter"><i id="micBar"></i></div><span class="cam-ph" id="camPh">Camera preview</span></div>
-    </section>
-
-    ${past.length ? `<section class="live-block"><h2 class="h2-sec">Past classes</h2><ul class="past-list">${past.map(ss => `<li>${esc(fmtSession(ss))} · ${esc(ss.topic)}</li>`).join("")}</ul></section>` : ""}
-  </div>`;
-
-  const slotRow = $("#slotRow");
-  const drawSlots = () => {
-    if (!slotRow) return;
-    const day = $("input[name=day]:checked").value;
-    slotRow.innerHTML = LC.slots.map((sl, i) => { const busy = taken.has(day + " " + sl); return `<label class="chip ${busy ? "busy" : ""}"><input type="radio" name="slot" value="${sl}" ${busy ? "disabled" : ""}><span><b>${sl}</b><small>${busy ? "booked" : LC.minutes + " min"}</small></span></label>`; }).join("");
-    const first = $("input[name=slot]:not(:disabled)", slotRow); if (first) first.checked = true;
-  };
-  if (slotRow) { $$("input[name=day]").forEach(r => r.onchange = drawSlots); drawSlots(); }
-  const showSend = ss => {
-    openModal(`<div class="modal-head" style="--img:url('${photo("speaking", 900)}')"><span class="eyebrow">Class booked</span><h2>${esc(fmtSession(ss))}</h2><p>Send the request to your teacher. The message includes your video room link: your teacher joins you there.</p></div>
-      <div class="modal-body"><pre class="sess-msg">${esc(sessionMessage(ss))}</pre><div class="row">${contactButtons("IELTS Pro — live class request", sessionMessage(ss))}<button class="btn btn-ghost" id="copyMsg">Copy the message</button></div></div>`);
-    $("#copyMsg").onclick = async () => { try { await navigator.clipboard.writeText(sessionMessage(ss)); toast("Message copied"); } catch { toast("Select the message and copy it"); } };
-  };
-  const bf = $("#bookForm");
-  if (bf) bf.onsubmit = e => {
-    e.preventDefault();
-    const d = new FormData(bf);
-    if (!d.get("slot")) { toast("Choose a time"); return; }
-    const ss = { id: Date.now().toString(36), day: d.get("day"), slot: d.get("slot"), topic: d.get("topic"), status: "booked",
-      room: "IELTSPro-" + (fbUser ? fbUser.uid.slice(-4) : "") + Math.random().toString(36).slice(2, 10) };
-    L.sessions.push(ss); L.credits--; save();
-    render(); showSend(ss);
-  };
-  $$("[data-send]").forEach(b => b.onclick = () => showSend(L.sessions.find(x => x.id === b.dataset.send)));
-  $$("[data-cancel]").forEach(b => b.onclick = () => {
-    if (!b.dataset.sure) { b.dataset.sure = "1"; b.textContent = "Click again to cancel"; return; }
-    const ss = L.sessions.find(x => x.id === b.dataset.cancel); ss.status = "cancelled"; L.credits++; save();
-    toast("Class cancelled · your session is back. Tell your teacher."); render();
-  });
-  // test caméra + micro
+    </section>`;
+}
+function bindCamTest() {
   let stream = null, raf = 0, actx = null;
   const stop = () => { cancelAnimationFrame(raf); if (stream) stream.getTracks().forEach(t => t.stop()); stream = null; if (actx) actx.close(); actx = null; };
   onLeave(stop);
-  $("#camTest").onclick = async () => {
+  const btn = $("#camTest"); if (!btn) return;
+  btn.onclick = async () => {
     const msg = $("#camMsg");
-    if (stream) { stop(); $("#camTest").innerHTML = `${ic("play", "sm")} Start the test`; $("#camPh").hidden = false; return; }
+    if (stream) { stop(); btn.innerHTML = `${ic("play", "sm")} Start the test`; $("#camPh").hidden = false; return; }
     try {
       stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
       const v = $("#camVid"); v.srcObject = stream; await v.play(); $("#camPh").hidden = true;
@@ -2674,13 +2592,123 @@ function viewLive(p) {
       const tick = () => { an.getByteTimeDomainData(buf); let m = 0; for (const x of buf) m = Math.max(m, Math.abs(x - 128)); $("#micBar").style.width = Math.min(100, m * 1.6) + "%"; raf = requestAnimationFrame(tick); };
       tick();
       msg.textContent = "✓ Camera and microphone work. Say something: the red bar moves."; msg.className = "small ok-txt";
-      $("#camTest").innerHTML = "Stop the test";
-    } catch (err) {
-      msg.textContent = "Your browser blocked the camera or microphone. Allow access in the address bar, then try again."; msg.className = "small pm-err";
-    }
+      btn.innerHTML = "Stop the test";
+    } catch { msg.textContent = "Your browser blocked the camera or microphone. Allow access in the address bar, then try again."; msg.className = "small pm-err"; }
   };
 }
+const bkStart = b => new Date(`${b.day}T${b.slot}:00`);
+const bkWhen = b => bkStart(b).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" }) + " · " + b.slot;
+function bookingCard(b, asTeacher) {
+  const st = bkStart(b).getTime(), now = Date.now(), open = now >= st - 15 * 60000;
+  const mins = Math.round((st - now) / 60000);
+  const when = mins > 1440 ? `in ${Math.round(mins / 1440)} day(s)` : mins > 60 ? `in ${Math.round(mins / 60)} h` : mins > 0 ? `in ${mins} min` : "now";
+  const who = asTeacher ? `${esc(b.student.name)}${b.student.summary && b.student.summary.level ? ` · level ${esc(b.student.summary.level)}${b.student.summary.band ? " · band " + Number(b.student.summary.band).toFixed(1) : ""}` : " · not tested yet"}` : `with ${esc(b.teacher.name)}`;
+  return `<article class="sess-card ${open ? "open" : ""}">
+    <div class="sess-date"><b>${bkStart(b).getDate()}</b><span>${bkStart(b).toLocaleDateString("en-GB", { month: "short" })}</span></div>
+    <div class="sess-info"><b>${esc(bkWhen(b))}</b><span>${who} · ${esc(b.topic)} · <em>${when}</em></span><code>${esc((LC.roomBase + b.room).replace("https://", ""))}</code></div>
+    <div class="sess-actions">
+      <a class="btn ${open ? "btn-primary" : "btn-dark"} btn-sm" href="${LC.roomBase + b.room}" target="_blank" rel="noopener">${ic("play", "sm")} ${open ? "Join the class now" : "Open the class room"}</a>
+      ${asTeacher ? `<button class="btn btn-ghost btn-sm" data-done="${b.id}">Mark as done</button>` : ""}
+      <button class="link-btn" data-cancel="${b.id}">Cancel</button>
+    </div>
+  </article>`;
+}
+function bindBookingActions(reload) {
+  $$("[data-cancel]").forEach(b => b.onclick = async () => {
+    if (!b.dataset.sure) { b.dataset.sure = "1"; b.textContent = "Click again to cancel"; return; }
+    try { await api("cancelBooking", { id: b.dataset.cancel }); toast("Class cancelled · the session goes back to the student"); await refreshMe(); reload(); } catch (e) { toast(e.message); }
+  });
+  $$("[data-done]").forEach(b => b.onclick = async () => { try { await api("markDone", { id: b.dataset.done }); toast("Class marked as done"); reload(); } catch (e) { toast(e.message); } });
+}
 
+function viewLive(p) {
+  const wrapCls = S.level ? "" : "wrap", wrapSty = S.level ? "" : "padding-top:30px;padding-bottom:60px";
+  const credits = PROFILE ? PROFILE.live_credits || 0 : 0;
+  app.innerHTML = `<div class="${wrapCls}" style="${wrapSty}">
+    <section class="live-hero fade-in">
+      <div>
+        <span class="eyebrow" style="color:#fff">Live classes · video call</span>
+        <h1 class="display">Your class with a real teacher.</h1>
+        <p>Choose a teacher, pick a free time and book a ${LC.minutes}-minute video class. At the time of your class, click "Join": it opens in your browser, on phone or computer. Nothing to install.</p>
+        <div class="live-credits"><b>${credits}</b><span>session(s) left</span>${credits ? "" : `<a class="btn btn-white btn-sm" href="#/plans/live">Buy live sessions ${ic("arrow", "sm arrow")}</a>`}</div>
+      </div>
+      ${liveCallMock()}
+    </section>
+    <div id="liveBody"><p class="muted" style="margin-top:30px">Loading teachers and your classes…</p></div>
+    ${camTestHTML()}
+  </div>`;
+  bindCamTest();
+  if (!PROFILE) { $("#liveBody").innerHTML = `<div class="pm-lock" style="margin-top:30px"><h3>Log in to book a class</h3><p class="muted">Live classes are linked to your account, so your teacher sees your booking.</p><a class="btn btn-primary" href="#/login">Log in with Google</a></div>`; return; }
+  const load = async () => {
+    const body = $("#liveBody"); if (!body) return;
+    let T, B;
+    try { [T, B] = await Promise.all([api("teachers"), api("myBookings")]); }
+    catch (e) { body.innerHTML = `<p class="pm-err" style="margin-top:30px">${esc(e.message)}</p>`; return; }
+    const now = Date.now();
+    const upcoming = B.bookings.filter(b => b.status === "booked" && bkStart(b).getTime() + LC.minutes * 60000 > now);
+    const past = B.bookings.filter(b => b.status === "done" || (b.status === "booked" && bkStart(b).getTime() + LC.minutes * 60000 <= now));
+    const teachers = T.teachers;
+    const topics = ["Speaking practice", "Writing review", "Listening & Reading strategies", "Full mock test", "My questions"];
+    body.innerHTML = `
+      ${upcoming.length ? `<section class="live-block"><h2 class="h2-sec">My next classes</h2><div class="sess-list">${upcoming.map(b => bookingCard(b, false)).join("")}</div></section>` : ""}
+      <section class="live-block live-book">
+        <h2 class="h2-sec">Book a class</h2>
+        ${!teachers.length ? `<div class="pm-lock" style="margin:0"><h3>No teacher available yet</h3><p class="muted">Teachers are joining IELTS Pro. Come back soon.</p></div>`
+        : !PROFILE.live_credits ? `<div class="pm-lock" style="margin:0"><h3>No live session left</h3><p class="muted">Buy a session or a pack to book your video class with a teacher.</p><a class="btn btn-primary" href="#/plans/live">See live class prices ${ic("arrow", "sm arrow")}</a></div>`
+        : `<form id="bookForm">
+          <p class="small muted" style="margin:0">1. Choose your teacher</p>
+          <div class="teacher-row">${teachers.map((t, i) => `<label class="teacher-pick"><input type="radio" name="teacher" value="${t.id}" ${i === 0 ? "checked" : ""}><span>
+            ${t.photo ? `<img src="${esc(t.photo)}" alt="" referrerpolicy="no-referrer">` : `<i>${initials(t.name)}</i>`}<b>${esc(t.name)}</b><small>${esc((t.bio || "IELTS teacher").slice(0, 110))}</small></span></label>`).join("")}</div>
+          <p class="small muted">2. Choose a day</p>
+          <div class="chip-row" id="dayRow"></div>
+          <p class="small muted">3. Choose a time</p>
+          <div class="chip-row" id="slotRow"></div>
+          <p class="small muted">4. What do you want to work on?</p>
+          <div class="chip-row">${topics.map((t, i) => `<label class="chip chip-wide"><input type="radio" name="topic" value="${esc(t)}" ${i === 0 ? "checked" : ""}><span>${esc(t)}</span></label>`).join("")}</div>
+          <button class="btn btn-primary btn-lg" type="submit">Book this class · 1 session ${ic("arrow", "arrow")}</button>
+          <p class="small" id="bookMsg"></p>
+        </form>`}
+      </section>
+      ${past.length ? `<section class="live-block"><h2 class="h2-sec">Past classes</h2><ul class="past-list">${past.map(b => `<li>${esc(bkWhen(b))} · ${esc(b.topic)} · with ${esc(b.teacher.name)}</li>`).join("")}</ul></section>` : ""}`;
+    bindBookingActions(load);
+    const bf = $("#bookForm"); if (!bf) return;
+    const teacherOf = () => teachers.find(t => t.id === $("input[name=teacher]:checked").value);
+    const drawDays = () => {
+      const t = teacherOf(), days = [];
+      for (let i = 1; days.length < 12 && i < 40; i++) { const d = new Date(); d.setDate(d.getDate() + i); if (!(t.closed || []).includes(d.getDay())) days.push(d); }
+      $("#dayRow").innerHTML = days.map((d, i) => `<label class="chip"><input type="radio" name="day" value="${isoDay(d)}" ${i === 0 ? "checked" : ""}><span><small>${d.toLocaleDateString("en-GB", { weekday: "short" })}</small><b>${d.getDate()}</b><small>${d.toLocaleDateString("en-GB", { month: "short" })}</small></span></label>`).join("");
+      $$("input[name=day]").forEach(r => r.onchange = drawSlots); drawSlots();
+    };
+    const drawSlots = () => {
+      const t = teacherOf(), day = ($("input[name=day]:checked") || {}).value, busy = new Set(t.busy || []);
+      $("#slotRow").innerHTML = (t.slots || []).length ? t.slots.map(sl => { const b = busy.has(day + " " + sl); return `<label class="chip ${b ? "busy" : ""}"><input type="radio" name="slot" value="${sl}" ${b ? "disabled" : ""}><span><b>${sl}</b><small>${b ? "booked" : LC.minutes + " min"}</small></span></label>`; }).join("") : `<p class="muted small">This teacher has no hours yet.</p>`;
+      const first = $("#slotRow input[name=slot]:not(:disabled)"); if (first) first.checked = true;
+    };
+    $$("input[name=teacher]").forEach(r => r.onchange = drawDays); drawDays();
+    bf.onsubmit = async e => {
+      e.preventDefault();
+      const d = new FormData(bf), msg = $("#bookMsg");
+      if (!d.get("slot")) { msg.textContent = "Choose a free time."; msg.className = "small pm-err"; return; }
+      const btn = $("button[type=submit]", bf); btn.disabled = true; msg.textContent = "Booking…"; msg.className = "small";
+      try {
+        await api("book", { teacherId: d.get("teacher"), day: d.get("day"), slot: d.get("slot"), topic: d.get("topic") });
+        confetti(); toast("Class booked! Your teacher sees it in their space."); await refreshMe(); viewLive();
+      } catch (err) { msg.textContent = err.message; msg.className = "small pm-err"; btn.disabled = false; }
+    };
+  };
+  load();
+}
+function reqCard(r, asTeacher) {
+  const nl = t => esc(t).replace(/\n/g, "<br>");
+  return `<article class="req-card ${r.status}">
+    <div class="req-top"><span class="tag">${esc(r.kind)}</span><b>${esc((r.task || "Answer").slice(0, 90))}</b><div class="spacer"></div>
+      ${r.status === "answered" ? `<span class="req-band">Band ${r.band != null ? Number(r.band).toFixed(1) : "—"}</span>` : `<span class="muted small">${asTeacher ? esc(r.student_name) + (r.student_level ? " · " + esc(r.student_level) : "") + " · " : "Waiting for a teacher · "}sent ${new Date(r.created_at).toLocaleDateString("en-GB")}</span>`}</div>
+    ${asTeacher ? `<p class="req-text">${nl(r.content)}</p>` : `<details><summary>My answer</summary><p class="req-text">${nl(r.content)}</p></details>`}
+    ${r.status === "answered" ? `<div class="req-fb"><small>Feedback${r.teacher_name ? " from " + esc(r.teacher_name) : ""}</small><p>${nl(r.feedback)}</p></div>`
+      : asTeacher ? `<form class="req-answer" data-req="${r.id}"><label>Your feedback (Task, Coherence, Vocabulary, Grammar)<textarea name="feedback" required minlength="20" style="min-height:140px"></textarea></label>
+        <div class="row"><label class="band-in">Band <input name="band" type="number" min="0" max="9" step="0.5" required></label><button class="btn btn-primary btn-sm">Send the correction</button></div></form>` : ""}
+  </article>`;
+}
 function viewTeacher(p) {
   const prem = isPremium();
   const L = lvl() || LEVELS[0];
@@ -2700,15 +2728,24 @@ function viewTeacher(p) {
   S.teacherSent = S.teacherSent || [];
   const draft = S.teacherDraft || {};
   const tasks = L.writing;
-  const ref = `Premium code ending …${S.premium.tail || ""}`;
+  const ref = `Account: ${PROFILE ? PROFILE.email : "not logged in"}`;
   app.innerHTML = `<div class="${S.level ? "" : "wrap"}" style="${S.level ? "" : "padding-top:30px;padding-bottom:60px"}">
     ${pageHero("writing", "Premium", "Teacher correction", "Choose Writing or Speaking, then send your work to the teacher in one click.")}
     <div class="row" style="margin-bottom:18px"><div class="tabs">
       <button data-tt="writing" class="${tab === "writing" ? "active" : ""}">Writing</button>
       <button data-tt="speaking" class="${tab === "speaking" ? "active" : ""}">Speaking</button></div></div>
     <div id="tz"></div>
-    ${S.teacherSent.length ? `<div class="card" style="margin-top:22px"><h3>My requests</h3>${S.teacherSent.slice().reverse().map(r => `<div class="plan-day"><span class="tag">${esc(r.kind)}</span><span class="txt">${esc(r.title)}</span><div class="spacer"></div><span class="muted small">${new Date(r.date).toLocaleDateString("en-GB")}</span></div>`).join("")}</div>` : ""}
+    <div id="myReq"></div>
   </div>`;
+  const loadReq = async () => {
+    const box = $("#myReq"); if (!box || !PROFILE) return;
+    try {
+      const { requests } = await api("myRequests");
+      const mine = requests.filter(r => r.student_id === PROFILE.id);
+      box.innerHTML = mine.length ? `<section class="live-block"><h2 class="h2-sec">My corrections</h2><div class="req-list">${mine.map(r => reqCard(r, false)).join("")}</div></section>` : "";
+    } catch (e) { box.innerHTML = `<p class="pm-err">${esc(e.message)}</p>`; }
+  };
+  loadReq();
   $$("[data-tt]").forEach(b => b.onclick = () => { location.hash = `#/teacher/${b.dataset.tt}`; });
   const z = $("#tz");
   if (tab === "writing") {
@@ -2722,7 +2759,7 @@ function viewTeacher(p) {
         <div class="row" style="margin-top:8px"><span class="tag" id="tWc">0 words</span></div>
       </div>
       <div class="card"><h3>3. Send to the teacher</h3>
-        <p class="muted">The message is prepared with your level, the task and your essay. The teacher replies with corrections on the 4 criteria.</p>
+        <p class="muted">Your essay goes to the IELTS Pro teachers. The correction appears on this page, with your band and advice on the 4 criteria.</p>
         <div class="row" id="tSend"></div>
         <div class="tipbox" style="margin-top:18px">Tip: run the automatic analysis on the Writing page first and fix the easy mistakes. The teacher can then focus on what really matters.</div>
       </div></div>`;
@@ -2732,8 +2769,14 @@ function viewTeacher(p) {
       $("#tWc").textContent = `${n} word${n === 1 ? "" : "s"}`;
       const subject = `IELTS Pro — Writing correction (${L.id})`;
       const body = `${ref}\nLevel: ${L.id}\nTask: ${t ? t.type + " — " + t.prompt : "own task"}\nWords: ${n}\n\n${txt}`;
-      $("#tSend").innerHTML = n < 50 ? `<p class="muted small">Write at least 50 words to send your essay.</p>` : contactButtons(subject, body);
-      $$("#tSend a").forEach(a => a.onclick = () => { S.teacherSent.push({ kind: "Writing", title: t ? t.type : "Own task", date: new Date().toISOString() }); S.teacherDraft = null; save(); toast("Request prepared — send it in the window that opens"); });
+      $("#tSend").innerHTML = n < 50 ? `<p class="muted small">Write at least 50 words to send your essay.</p>` : `<button class="btn btn-primary" id="sendReq">Send to the teacher ${ic("arrow", "sm arrow")}</button>`;
+      const sb = $("#sendReq");
+      if (sb) sb.onclick = async () => {
+        if (!PROFILE) { toast("Log in first"); location.hash = "#/login"; return; }
+        sb.disabled = true; sb.textContent = "Sending…";
+        try { await api("requestCorrection", { kind: "writing", task: t ? t.type + " — " + t.prompt : "Own task", content: txt }); S.teacherDraft = null; $("#tText").value = ""; save(); toast("Sent! The correction will appear below."); upd(); loadReq(); }
+        catch (e) { toast(e.message); sb.disabled = false; sb.textContent = "Send to the teacher"; }
+      };
     };
     $("#tTask").onchange = upd; $("#tText").oninput = () => { S.teacherDraft = { ...(S.teacherDraft || {}), text: $("#tText").value }; save(); upd(); };
     upd();
@@ -2752,14 +2795,66 @@ function viewTeacher(p) {
 }
 
 
-/* ---------------- Comptes élèves (Google Cloud : « Se connecter avec Google ») ----------------
-   Seul l'ID client OAuth (public) est utilisé. Le code secret du client n'est jamais mis dans le site. */
+/* ---------------- Comptes (élève / professeur / admin) ----------------
+   Connexion « Se connecter avec Google » (ID client public), vérifiée par le serveur Supabase.
+   Le serveur garde le rôle, l'offre, les séances, les réservations et la progression. */
 const G_ON = typeof GOOGLE_CLIENT_ID !== "undefined" && /\.apps\.googleusercontent\.com$/.test(GOOGLE_CLIENT_ID);
-const USER_KEY = KEY + ":google-user";
-let fbUser = (() => { try { return JSON.parse(localStorage.getItem(USER_KEY)) || null; } catch { return null; } })();
-let gReady = null;
+const API_ON = typeof SUPABASE_URL !== "undefined" && !!SUPABASE_URL;
+const USER_KEY = KEY + ":google-user", SESSION_KEY = KEY + ":session";
+const lsGet = k => { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } };
+const lsSet = (k, v) => { try { v === null ? localStorage.removeItem(k) : localStorage.setItem(k, JSON.stringify(v)); } catch { } };
+let PROFILE = lsGet(USER_KEY);                    // profil renvoyé par le serveur (rôle, offre, séances…)
+let fbUser = PROFILE ? { uid: PROFILE.id, displayName: PROFILE.name, email: PROFILE.email, photoURL: PROFILE.photo } : null;
+let gReady = null, cloudTimer = null, lastSync = null;
 const currentRoute = () => location.hash.replace(/^#\/?/, "").split("/")[0];
-const userStateKey = u => KEY + ":user:" + u.uid;
+const role = () => PROFILE ? PROFILE.role : null;
+const isAdmin = () => role() === "admin";
+const isTeacherAcc = () => role() === "teacher";
+
+async function api(action, body = {}) {
+  if (!API_ON) throw new Error("The server is not configured.");
+  let r;
+  try {
+    r = await fetch(SUPABASE_URL + "/functions/v1/api", { method: "POST",
+      headers: { "content-type": "application/json", apikey: SUPABASE_KEY, "x-session": lsGet(SESSION_KEY) || "" },
+      body: JSON.stringify({ action, ...body }) });
+  } catch { throw new Error("No internet connection. Check your connection and try again."); }
+  const data = await r.json().catch(() => ({}));
+  if (r.status === 401 && action !== "login") { signOutLocal(); toast("Please log in again"); location.hash = "#/login"; }
+  if (!r.ok) throw new Error(data.error || "Server error. Please try again.");
+  return data;
+}
+function setProfile(p) {
+  PROFILE = p; lsSet(USER_KEY, p);
+  fbUser = p ? { uid: p.id, displayName: p.name, email: p.email, photoURL: p.photo } : null;
+}
+function signOutLocal() { lsSet(SESSION_KEY, null); setProfile(null); }
+// progression : la version la plus récente gagne (appareil ou compte)
+function mergeServerState(state, updated) {
+  if (state && (updated || 0) > (S.updatedAt || 0)) {
+    const theme = S.theme, owner = S.ownerTest;
+    S = Object.assign(defaults(), state); S.theme = theme || S.theme; S.ownerTest = owner; S.updatedAt = updated;
+    try { localStorage.setItem(KEY, JSON.stringify(S)); } catch { }
+    applyTheme(); return true;
+  }
+  return false;
+}
+async function refreshMe() {
+  if (!lsGet(SESSION_KEY)) return;
+  try {
+    const d = await api("me"); setProfile(d.profile);
+    const changed = mergeServerState(d.state, d.state_updated);
+    if (!changed && (S.updatedAt || 0) > (d.state_updated || 0)) scheduleCloud();
+    updateTop(); if (changed || ["plans", "live", "teach", "admin", "account", "teacher"].includes(currentRoute())) render();
+  } catch (e) { console.warn(e); }
+}
+function scheduleCloud() {
+  if (!PROFILE || !lsGet(SESSION_KEY)) return;
+  clearTimeout(cloudTimer);
+  cloudTimer = setTimeout(async () => {
+    try { await api("saveState", { state: JSON.parse(JSON.stringify(S)), updated: S.updatedAt || Date.now() }); lastSync = new Date(); } catch (e) { console.warn(e); }
+  }, 1500);
+}
 
 function loadScript(src) {
   return new Promise((res, rej) => { const s = document.createElement("script"); s.src = src; s.async = true; s.onload = res; s.onerror = () => rej(new Error("Could not load " + src)); document.head.appendChild(s); });
@@ -2773,46 +2868,43 @@ function initGoogle() {
   }).catch(e => { console.warn(e); gReady = null; return null; });
   return gReady;
 }
-// Lit le jeton d'identité renvoyé par Google (nom, e-mail, photo)
-function decodeJwt(t) {
-  const b = t.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
-  const bin = atob(b + "===".slice((b.length + 3) % 4));
-  return JSON.parse(new TextDecoder().decode(Uint8Array.from(bin, c => c.charCodeAt(0))));
-}
-function onGoogleCredential(resp) {
-  let p; try { p = decodeJwt(resp.credential); } catch { toast("Google sign-in failed. Please try again."); return; }
-  fbUser = { uid: p.sub, displayName: p.name || "", email: p.email || "", photoURL: p.picture || "" };
-  try { localStorage.setItem(USER_KEY, JSON.stringify(fbUser)); } catch { }
-  // Si ce compte a déjà une progression plus récente sur cet appareil, on la reprend
+async function onGoogleCredential(resp) {
+  const m = $("#authMsg"); if (m) { m.textContent = "Signing you in…"; m.className = "auth-msg"; }
   try {
-    const saved = JSON.parse(localStorage.getItem(userStateKey(fbUser)));
-    if (saved && (saved.updatedAt || 0) > (S.updatedAt || 0)) { const theme = S.theme; S = Object.assign(defaults(), saved); S.theme = theme || S.theme; applyTheme(); }
-  } catch { }
-  save();
-  toast(`Welcome, ${(fbUser.displayName || "student").split(" ")[0]}!`);
-  updateTop();
-  location.hash = planRank() < 1 ? "#/plans" : !S.level ? "#/test" : planRank() >= 2 ? "#/dashboard" : "#/result";
+    const d = await api("login", { idToken: resp.credential, as: S.signupAs || "student" });
+    lsSet(SESSION_KEY, d.session); setProfile(d.profile);
+    if (!mergeServerState(d.state, d.state_updated)) save(); // envoie la progression de cet appareil
+    toast(`Welcome, ${(PROFILE.name || "").split(" ")[0] || "back"}!`);
+    updateTop();
+    location.hash = homeForRole();
+  } catch (e) { if (m) { m.textContent = e.message; m.className = "auth-msg err"; } else toast(e.message); }
 }
-// Garde une copie de la progression liée au compte Google
-function scheduleCloud() { if (!fbUser) return; try { localStorage.setItem(userStateKey(fbUser), JSON.stringify(S)); } catch { } }
+function homeForRole() {
+  if (isAdmin()) return "#/admin";
+  if (isTeacherAcc()) return "#/teach";
+  return planRank() < 1 ? "#/plans" : !S.level ? "#/test" : planRank() >= 2 ? "#/dashboard" : "#/result";
+}
 
 const initials = name => (name || "?").trim().split(/\s+/).map(w => w[0]).slice(0, 2).join("").toUpperCase();
 
 function authShell(kind, title, sub, formHtml) {
-  const perks = ["One click with your Google account", "No new password to remember", "Your level and scores linked to your account", "Free — no payment needed to sign up"];
+  const teacher = kind === "signup" && S.signupAs === "teacher";
+  const perks = teacher
+    ? ["Students book live video classes with you", "Your own timetable and profile", "See each student's level and progress", "Monthly subscription from " + money(TEACHER_PLANS[0].price)]
+    : ["One click with your Google account", "No new password to remember", "Your level and scores saved online", "Continue on phone and computer"];
   return `<div class="wrap auth-wrap">
     <div class="auth-card fade-in">
       <aside class="auth-side">
         <img src="${photo(kind === "signup" ? "hero" : "reading", 900)}" alt="">
         <div class="auth-side-in">
           <span class="eyebrow" style="color:#fff">IELTS Pro account</span>
-          <h2>${kind === "signup" ? "Start your journey to band 7." : "Welcome back."}</h2>
+          <h2>${teacher ? "Teach IELTS online." : kind === "signup" ? "Start your journey to band 7." : "Welcome back."}</h2>
           <ul>${perks.map(p => `<li>${p}</li>`).join("")}</ul>
           <div class="flag-pair foot"><span class="flag">${flagDZ()}</span><span class="flag">${flagUK()}</span></div>
         </div>
       </aside>
       <section class="auth-main">
-        ${G_ON ? "" : `<div class="auth-off"><b>Accounts are coming soon.</b> You can already use the whole site without an account; your progress is saved in this browser.</div>`}
+        ${G_ON && API_ON ? "" : `<div class="auth-off"><b>Accounts are coming soon.</b> You can already use the whole site without an account; your progress is saved in this browser.</div>`}
         <h1>${title}</h1><p class="muted">${sub}</p>
         ${formHtml}
       </section>
@@ -2820,15 +2912,23 @@ function authShell(kind, title, sub, formHtml) {
   </div>`;
 }
 function googleSignIn(kind) {
+  if (kind === "login") S.signupAs = "student";
+  const as = S.signupAs || "student";
   app.innerHTML = authShell(kind, kind === "signup" ? "Create your account" : "Log in",
-    kind === "signup" ? "Free. Use your Google account: it takes 10 seconds." : "Log in with your Google account to find your level and scores.", `
+    kind === "signup" ? "Free. Choose your account type, then use your Google account." : "Log in with your Google account. Students, teachers and admin use the same button.", `
     <div class="auth-form">
+      ${kind === "signup" ? `<div class="role-pick" role="radiogroup" aria-label="Account type">
+        <button type="button" class="role-opt ${as === "student" ? "on" : ""}" data-as="student"><b>I'm a student</b><span>Find my level and prepare for IELTS</span></button>
+        <button type="button" class="role-opt ${as === "teacher" ? "on" : ""}" data-as="teacher"><b>I'm a teacher</b><span>Teach live classes and correct students</span></button>
+      </div>` : ""}
       <div id="gBtn" class="g-btn-slot"><div class="muted small">Loading Google sign-in…</div></div>
       <p class="auth-msg" id="authMsg" role="status"></p>
       <p class="small muted">We only receive your name, email and profile photo from Google. We never see your Google password.</p>
-      <p class="auth-switch">${kind === "signup" ? `Already have an account? <a href="#/login">Log in</a>` : `No account yet? <a href="#/signup">Create a free account</a>`}</p>
+      <p class="auth-switch">${kind === "signup" ? `Already have an account? <a href="#/login">Log in</a>` : `No account yet? <a href="#/signup">Create a free account</a> · <a href="#/signup" data-as-link="teacher">Sign up as a teacher</a>`}</p>
     </div>`);
-  if (!G_ON) { $("#gBtn").innerHTML = ""; return; }
+  $$("[data-as]").forEach(b => b.onclick = () => { S.signupAs = b.dataset.as; save(); googleSignIn("signup"); });
+  $$("[data-as-link]").forEach(a => a.onclick = () => { S.signupAs = a.dataset.asLink; save(); });
+  if (!G_ON || !API_ON) { $("#gBtn").innerHTML = ""; return; }
   initGoogle().then(g => {
     const slot = $("#gBtn"); if (!slot) return;
     if (!g) { slot.innerHTML = ""; const m = $("#authMsg"); m.textContent = "Google sign-in could not load. Check your connection and reload the page."; m.className = "auth-msg err"; return; }
@@ -2840,31 +2940,253 @@ const viewLogin = () => googleSignIn("login");
 const viewSignup = () => googleSignIn("signup");
 const viewForgot = () => { location.hash = "#/login"; };
 
+function logout() {
+  scheduleCloud(); signOutLocal();
+  if (window.google && google.accounts) google.accounts.id.disableAutoSelect();
+  toast("You are logged out"); updateTop(); location.hash = "#/";
+}
+const roleLabel = r => ({ student: "Student", teacher: "Teacher", admin: "Admin" })[r] || "Student";
+
 function viewAccount() {
-  if (!fbUser) {
-    app.innerHTML = `<div class="${S.level ? "" : "wrap"}" style="padding-top:30px"><div class="pm-lock"><h2>You are not logged in</h2><p class="muted">Log in with Google to link your level and scores to your account.</p><div class="row" style="justify-content:center"><a class="btn btn-primary" href="#/login">Log in with Google</a></div></div></div>`;
+  if (!PROFILE) {
+    app.innerHTML = `<div class="${S.level ? "" : "wrap"}" style="padding-top:30px"><div class="pm-lock"><h2>You are not logged in</h2><p class="muted">Log in with Google to save your level and scores online.</p><div class="row" style="justify-content:center"><a class="btn btn-primary" href="#/login">Log in with Google</a></div></div></div>`;
     return;
   }
-  const L = lvl(), name = fbUser.displayName || fbUser.email;
+  const L = lvl(), name = PROFILE.name || PROFILE.email;
   app.innerHTML = `<div class="${S.level ? "" : "wrap"}" style="${S.level ? "" : "padding-top:30px;padding-bottom:60px"}">
     <section class="acc-head fade-in">
-      <div class="acc-avatar">${fbUser.photoURL ? `<img src="${esc(fbUser.photoURL)}" alt="" referrerpolicy="no-referrer">` : initials(name)}</div>
-      <div><span class="eyebrow">My account · Google</span><h1>${esc(name)}</h1><p class="muted">${esc(fbUser.email || "")}</p></div>
+      <div class="acc-avatar">${PROFILE.photo ? `<img src="${esc(PROFILE.photo)}" alt="" referrerpolicy="no-referrer">` : initials(name)}</div>
+      <div><span class="eyebrow">My account · <span class="role-badge r-${PROFILE.role}">${roleLabel(PROFILE.role)}</span></span><h1>${esc(name)}</h1><p class="muted">${esc(PROFILE.email || "")}</p></div>
       <div class="spacer"></div><button class="btn btn-ghost" id="logout">Log out</button>
     </section>
+    ${isAdmin() ? `<div class="pay-back" style="margin-top:18px"><b>You are the administrator.</b><span><a href="#/admin">Open the admin dashboard →</a> · <a href="#/teach">Teacher space →</a></span></div>` : ""}
+    ${isTeacherAcc() ? `<div class="pay-back" style="margin-top:18px"><b>Teacher account · ${PROFILE.teacher_active ? "active until " + new Date(PROFILE.teacher_until).toLocaleDateString("en-GB") : PROFILE.teacher_status === "pending" ? "waiting for your subscription" : PROFILE.teacher_status}</b><span><a href="#/teach">Open my teacher space →</a></span></div>` : ""}
     <div class="grid grid-3" style="margin-top:20px">
       <div class="card acc-stat"><small>Level</small><b>${L ? L.id + " · " + L.name : "Not tested yet"}</b>${L ? `<a href="#/dashboard">Open my dashboard →</a>` : `<a href="#/test">Take the placement test →</a>`}</div>
-      <div class="card acc-stat"><small>My plan</small><b>${planRank() ? esc(planOf(S.plan ? S.plan.id : "premium").name) : "No plan yet"}</b><a href="#/plans">${planRank() ? "See the plans →" : "Choose a plan →"}</a></div>
-      <div class="card acc-stat"><small>Full tests taken</small><b>${Object.keys(S.fullTests || {}).length} / 5</b><a href="#/test">See the tests →</a></div>
+      <div class="card acc-stat"><small>My plan</small><b>${planRank() ? esc((planOf(PROFILE.plan) || { name: isAdmin() ? "Admin · everything" : "—" }).name) : "No plan yet"}</b><a href="#/plans">${planRank() ? "See the plans →" : "Choose a plan →"}</a></div>
+      <div class="card acc-stat"><small>Live sessions left</small><b>${PROFILE.live_credits || 0}</b><a href="#/live">Live classes →</a></div>
     </div>
-    <p class="small muted" style="margin-top:16px">Your progress is saved on this device and linked to your Google account.</p>
+    <p class="small muted" style="margin-top:16px">Your level, scores and progress are saved in your account and loaded on every device where you log in.${lastSync ? " Last saved " + lastSync.toLocaleTimeString("en-GB") + "." : ""}</p>
   </div>`;
-  $("#logout").onclick = () => {
-    scheduleCloud();
-    try { localStorage.removeItem(USER_KEY); } catch { }
-    if (window.google && google.accounts) google.accounts.id.disableAutoSelect();
-    fbUser = null; toast("You are logged out"); location.hash = "#/";
+  $("#logout").onclick = logout;
+}
+
+
+/* =========================================================
+   ESPACE PROFESSEUR : #/teach
+   ========================================================= */
+const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const ALL_SLOTS = ["08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00", "20:00", "21:00", "22:00"];
+function teacherPlansHTML(withCode) {
+  return `<div class="plan-grid tplans">${TEACHER_PLANS.map((tp, i) => `<article class="plan-card ${tp.best ? "best" : ""}" style="--d:${i * .08}s">
+      ${tp.best ? `<span class="plan-badge">${esc(tp.note)}</span>` : ""}
+      <h3>Teacher · ${esc(tp.name)}</h3><p class="plan-tag">${tp.best ? "Three months of classes" : esc(tp.note)}</p>
+      <div class="plan-price">${Number(tp.price).toLocaleString("fr-FR").replace(/\s/g, " ")}<small>${PC.currency}</small></div>
+      <span class="plan-note">${tp.months > 1 ? money(Math.round(tp.price / tp.months)) + " per month" : "per month"}</span>
+      <ul>${TEACHER_FEATURES.map(f => `<li>${esc(f)}</li>`).join("")}</ul>
+      ${withCode ? `<button class="btn ${tp.best ? "btn-primary" : "btn-dark"}" data-tplan="${tp.months}">Subscribe · ${money(tp.price)} ${ic("arrow", "sm arrow")}</button>` : ""}
+    </article>`).join("")}</div>`;
+}
+function viewTeach() {
+  const wrapCls = S.level ? "" : "wrap", wrapSty = S.level ? "" : "padding-top:30px;padding-bottom:60px";
+  if (!PROFILE) { location.hash = "#/login"; return; }
+  if (!isTeacherAcc() && !isAdmin()) {
+    app.innerHTML = `<div class="${wrapCls}" style="${wrapSty}">
+      <section class="plans-head fade-in"><span class="eyebrow">Teach on IELTS Pro</span><h1 class="display">Are you an IELTS teacher?</h1>
+        <p class="lead">Get your own teacher space: students book live video classes with you and send you their Writing to correct.</p>
+        <button class="btn btn-primary btn-lg" id="becomeT">Switch my account to teacher ${ic("arrow", "arrow")}</button></section>
+      ${teacherPlansHTML(false)}</div>`;
+    $("#becomeT").onclick = async () => { try { const d = await api("becomeTeacher", {}); setProfile(d.profile); toast("Your account is now a teacher account"); render(); } catch (e) { toast(e.message); } };
+    return;
+  }
+  const P = PROFILE, active = P.teacher_active || isAdmin();
+  const until = P.teacher_until ? new Date(P.teacher_until) : null;
+  const daysLeft = until ? Math.ceil((until - Date.now()) / 864e5) : 0;
+  app.innerHTML = `<div class="${wrapCls}" style="${wrapSty}">
+    <section class="teach-head fade-in">
+      <div class="acc-avatar">${P.photo ? `<img src="${esc(P.photo)}" alt="" referrerpolicy="no-referrer">` : initials(P.name)}</div>
+      <div><span class="eyebrow">Teacher space</span><h1>${esc(P.name)}</h1>
+        <p class="muted">${active ? `<span class="st st-ok">Active</span>${until ? ` until ${until.toLocaleDateString("en-GB")} · ${daysLeft} day(s) left` : " · admin"}` : `<span class="st st-wait">${P.teacher_status === "suspended" ? "Suspended" : "Waiting for subscription"}</span> Students cannot see you yet.`}</p></div>
+    </section>
+    ${active ? `<div class="teach-stats" id="tStats"></div>` : ""}
+    ${!active || daysLeft <= 7 ? `<section class="live-block"><h2 class="h2-sec">${active ? "Renew your subscription" : "Activate your teacher subscription"}</h2>
+      <p class="muted">Pay with SofizPay, send your receipt, then enter your <b>TEACH-XXXX-XXXX</b> code below.</p>
+      ${teacherPlansHTML(true)}
+      <form class="pm-code" id="tCode" autocomplete="off"><input id="tCodeIn" placeholder="TEACH-XXXX-XXXX" maxlength="20" aria-label="Teacher code"><button class="btn btn-primary">Activate</button></form><p class="small" id="tCodeMsg"></p>
+    </section>` : ""}
+    <section class="live-block"><h2 class="h2-sec">My classes</h2><div id="tBook"><p class="muted">Loading…</p></div></section>
+    <section class="live-block"><h2 class="h2-sec">Corrections to do</h2><div id="tReq"><p class="muted">Loading…</p></div></section>
+    <section class="live-block live-book"><h2 class="h2-sec">My profile and timetable</h2>
+      <form id="tProf">
+        <label class="tp-label">About me (students read this)<textarea name="bio" maxlength="1500" style="min-height:110px" placeholder="e.g. CELTA teacher, 8 years of IELTS preparation, band 8.5. I help you with Speaking and Writing Task 2.">${esc(P.teacher_bio || "")}</textarea></label>
+        <p class="small muted">Days off</p>
+        <div class="chip-row">${DAY_NAMES.map((d, i) => `<label class="chip chip-wide"><input type="checkbox" name="closed" value="${i}" ${(P.teacher_closed || []).includes(i) ? "checked" : ""}><span>${d}</span></label>`).join("")}</div>
+        <p class="small muted">Hours you teach (each class is ${LC.minutes} min)</p>
+        <div class="chip-row">${ALL_SLOTS.map(h => `<label class="chip chip-wide"><input type="checkbox" name="slots" value="${h}" ${(P.teacher_slots || []).includes(h) ? "checked" : ""}><span>${h}</span></label>`).join("")}</div>
+        <button class="btn btn-primary" type="submit">Save my profile</button>
+      </form>
+    </section>
+    ${camTestHTML()}
+  </div>`;
+  bindCamTest();
+  $$("[data-tplan]").forEach(b => b.onclick = () => { const tp = TEACHER_PLANS.find(x => String(x.months) === b.dataset.tplan); openPayForm({ id: "teacher" + tp.months, name: "Teacher subscription · " + tp.name, price: tp.price }); });
+  const tc = $("#tCode");
+  if (tc) tc.onsubmit = async e => {
+    e.preventDefault(); const msg = $("#tCodeMsg");
+    try { const d = await api("redeem", { code: $("#tCodeIn").value }); setProfile(d.profile); confetti(); toast("Teacher subscription activated!"); render(); }
+    catch (err) { msg.textContent = err.message; msg.className = "small pm-err"; }
   };
+  $("#tProf").onsubmit = async e => {
+    e.preventDefault(); const f = new FormData(e.target);
+    try { const d = await api("updateTeacher", { bio: f.get("bio"), slots: f.getAll("slots"), closed: f.getAll("closed").map(Number) }); setProfile(d.profile); toast("Profile saved"); }
+    catch (err) { toast(err.message); }
+  };
+  const loadBook = async () => {
+    const box = $("#tBook"); if (!box) return;
+    try {
+      const { bookings } = await api("myBookings");
+      const now = Date.now();
+      const up = bookings.filter(b => b.status === "booked" && bkStart(b).getTime() + LC.minutes * 60000 > now);
+      const done = bookings.filter(b => b.status === "done");
+      const students = {}; bookings.forEach(b => { if (b.student) students[b.student_id] = b.student; });
+      const st = $("#tStats");
+      if (st) st.innerHTML = [["Next classes", up.length], ["Classes given", done.length], ["My students", Object.keys(students).length], ["Hours / week", (P.teacher_slots || []).length * (7 - (P.teacher_closed || []).length)]].map(([l, v]) => `<div><b>${v}</b><span>${l}</span></div>`).join("");
+      box.innerHTML = (up.length ? `<div class="sess-list">${up.map(b => bookingCard(b, true)).join("")}</div>` : `<p class="muted">No class booked yet. ${active ? "Students see your profile and your free hours on the Live classes page." : "Activate your subscription so students can book you."}</p>`)
+        + (Object.keys(students).length ? `<h3 style="margin-top:22px">My students</h3><div class="stu-grid">${Object.values(students).map(x => `<div class="stu-card"><b>${esc(x.name)}</b><span>${x.summary && x.summary.level ? "Level " + esc(x.summary.level) + (x.summary.band ? " · band " + Number(x.summary.band).toFixed(1) : "") : "Not tested yet"}</span><small>${x.summary ? x.summary.fullTests + " full test(s) · " + x.summary.xp + " XP" : ""}</small></div>`).join("")}</div>` : "");
+      bindBookingActions(loadBook);
+    } catch (e) { box.innerHTML = `<p class="pm-err">${esc(e.message)}</p>`; }
+  };
+  const loadReq = async () => {
+    const box = $("#tReq"); if (!box) return;
+    try {
+      const { requests } = await api("myRequests");
+      const open = requests.filter(r => r.status === "open"), answered = requests.filter(r => r.status === "answered").slice(0, 10);
+      box.innerHTML = (open.length ? `<div class="req-list">${open.map(r => reqCard(r, true)).join("")}</div>` : `<p class="muted">No correction waiting. 👍</p>`)
+        + (answered.length ? `<details style="margin-top:16px"><summary>Recently corrected (${answered.length})</summary><div class="req-list" style="margin-top:12px">${answered.map(r => reqCard(r, true)).join("")}</div></details>` : "");
+      $$(".req-answer").forEach(f => f.onsubmit = async e => {
+        e.preventDefault(); const d = new FormData(f);
+        try { await api("answerRequest", { id: f.dataset.req, feedback: d.get("feedback"), band: d.get("band") }); toast("Correction sent to the student"); loadReq(); }
+        catch (err) { toast(err.message); }
+      });
+    } catch (e) { box.innerHTML = `<p class="pm-err">${esc(e.message)}</p>`; }
+  };
+  loadBook(); loadReq();
+}
+
+/* =========================================================
+   TABLEAU DE BORD ADMIN : #/admin
+   ========================================================= */
+const CODE_TYPES = [
+  ["plan", "level", "Student · Know my level"], ["plan", "prep", "Student · IELTS preparation"], ["plan", "premium", "Student · Preparation + Teacher"],
+  ["live", "1", "Live · 1 session"], ["live", "4", "Live · pack 4 sessions"], ["live", "8", "Live · pack 8 sessions"],
+  ["teacher", "1", "Teacher · 1 month"], ["teacher", "3", "Teacher · 3 months"], ["teacher", "12", "Teacher · 12 months"]
+];
+function viewAdmin(p) {
+  if (!isAdmin()) { app.innerHTML = `<div class="wrap" style="padding-top:40px"><div class="pm-lock"><h2>Admin only</h2><p class="muted">Log in with the administrator's Google account.</p><a class="btn btn-primary" href="#/login">Log in</a></div></div>`; return; }
+  const tab = ["users", "codes", "classes", "log"].includes(p) ? p : "users";
+  app.innerHTML = `<div class="${S.level ? "" : "wrap"}" style="${S.level ? "" : "padding-top:30px;padding-bottom:60px"}">
+    <section class="admin-head fade-in"><div><span class="eyebrow">Solvarynlabs · administration</span><h1>Admin dashboard</h1><p class="muted">Students, teachers, payments, codes and classes in one place.</p></div>
+      <div class="row"><a class="btn btn-ghost btn-sm" href="#/teach">Teacher space</a><a class="btn btn-ghost btn-sm" href="#/dashboard">Student view</a></div></section>
+    <div class="admin-stats" id="aStats"><p class="muted">Loading…</p></div>
+    <div class="tabs admin-tabs">${[["users", "Users"], ["codes", "Activation codes"], ["classes", "Live classes"], ["log", "Payments log"]].map(([k, l]) => `<button data-atab="${k}" class="${tab === k ? "active" : ""}">${l}</button>`).join("")}</div>
+    <div id="aBody"><p class="muted">Loading…</p></div>
+  </div>`;
+  $$("[data-atab]").forEach(b => b.onclick = () => { location.hash = "#/admin/" + b.dataset.atab; });
+  api("adminStats").then(st => {
+    const box = $("#aStats"); if (!box) return;
+    box.innerHTML = [["Users", st.users, `${st.newThisWeek} new this week`], ["Students", st.students, `${st.activeToday} active today`], ["Teachers", st.teachers, `${st.teachersPending} waiting`],
+      ["Plans sold", st.plans.level + st.plans.prep + st.plans.premium, `${st.plans.level} level · ${st.plans.prep} prep · ${st.plans.premium} teacher`], ["Live classes", st.bookingsActive, `${st.bookingsDone} done`], ["Corrections", st.openRequests, "waiting"]]
+      .map(([l, v, sub]) => `<div class="a-stat"><small>${l}</small><b>${v}</b><span>${esc(sub)}</span></div>`).join("");
+    window.__codeStats = st.codeStats;
+  }).catch(e => { const b = $("#aStats"); if (b) b.innerHTML = `<p class="pm-err">${esc(e.message)}</p>`; });
+  const body = $("#aBody");
+  if (tab === "users") adminUsers(body);
+  else if (tab === "codes") adminCodes(body);
+  else if (tab === "classes") adminClasses(body);
+  else adminLog(body);
+}
+function adminUsers(body, search = "", roleF = "") {
+  body.innerHTML = `<form class="a-search" id="aSearch"><input name="q" placeholder="Search a name or an email" value="${esc(search)}" aria-label="Search users">
+      <select name="role" aria-label="Role"><option value="">All roles</option>${["student", "teacher", "admin"].map(r => `<option value="${r}" ${roleF === r ? "selected" : ""}>${roleLabel(r)}s</option>`).join("")}</select><button class="btn btn-dark btn-sm">Search</button></form>
+    <div id="aUsers"><p class="muted">Loading…</p></div>`;
+  $("#aSearch").onsubmit = e => { e.preventDefault(); const f = new FormData(e.target); adminUsers(body, f.get("q"), f.get("role")); };
+  api("adminUsers", { search, role: roleF }).then(({ users }) => {
+    const box = $("#aUsers"); if (!box) return;
+    if (!users.length) { box.innerHTML = `<p class="muted">No user found.</p>`; return; }
+    box.innerHTML = `<div class="a-table-wrap"><table class="a-table"><thead><tr><th>User</th><th>Role</th><th>Plan</th><th>Live</th><th>Teacher</th><th>Level</th><th>Last seen</th><th></th></tr></thead><tbody>
+      ${users.map(u => `<tr>
+        <td><b>${esc(u.name || "—")}</b><small>${esc(u.email)}</small></td>
+        <td><span class="role-badge r-${u.role}">${roleLabel(u.role)}</span></td>
+        <td>${u.plan ? esc(planOf(u.plan).name) : "—"}</td>
+        <td>${u.live_credits}</td>
+        <td>${u.role === "teacher" ? (u.teacher_active ? `<span class="st st-ok">active</span><small>until ${new Date(u.teacher_until).toLocaleDateString("en-GB")}</small>` : `<span class="st st-wait">${esc(u.teacher_status)}</span>`) : "—"}</td>
+        <td>${u.summary && u.summary.level ? esc(u.summary.level) + (u.summary.band ? " · " + Number(u.summary.band).toFixed(1) : "") : "—"}</td>
+        <td><small>${new Date(u.last_seen).toLocaleDateString("en-GB")}</small></td>
+        <td><button class="btn btn-ghost btn-sm" data-edit="${u.id}">Manage</button></td></tr>`).join("")}
+    </tbody></table></div>`;
+    $$("[data-edit]").forEach(b => b.onclick = () => adminEditUser(users.find(u => u.id === b.dataset.edit), () => adminUsers(body, search, roleF)));
+  }).catch(e => { $("#aUsers").innerHTML = `<p class="pm-err">${esc(e.message)}</p>`; });
+}
+function adminEditUser(u, done) {
+  const m = openModal(`<div class="modal-head" style="--img:url('${photo("grad", 900)}')"><span class="eyebrow">Manage user</span><h2>${esc(u.name || u.email)}</h2><p>${esc(u.email)} · ${roleLabel(u.role)}</p></div>
+    <form class="modal-body a-edit" id="aEdit">
+      <p class="small muted">Use this when a student or teacher sends you a payment receipt: give the plan, sessions or subscription directly, without a code.</p>
+      <label>Role<select name="role">${["student", "teacher", "admin"].map(r => `<option value="${r}" ${u.role === r ? "selected" : ""}>${roleLabel(r)}</option>`).join("")}</select></label>
+      <label>Student plan<select name="plan"><option value="">No plan</option>${PLAN_LIST.map(pl => `<option value="${pl.id}" ${u.plan === pl.id ? "selected" : ""}>${esc(pl.name)} · ${money(pl.price)}</option>`).join("")}</select></label>
+      <label>Add live sessions (now ${u.live_credits})<select name="addCredits"><option value="0">No change</option>${[1, 4, 8, -1].map(n => `<option value="${n}">${n > 0 ? "+" + n : n} session${Math.abs(n) > 1 ? "s" : ""}</option>`).join("")}</select></label>
+      <label>Teacher subscription<select name="teacherMonths"><option value="0">No change</option>${TEACHER_PLANS.map(tp => `<option value="${tp.months}">+ ${esc(tp.name)} · ${money(tp.price)}</option>`).join("")}</select></label>
+      <label>Teacher status<select name="teacherStatus"><option value="">No change</option>${["pending", "active", "suspended", "none"].map(x => `<option value="${x}">${x}</option>`).join("")}</select></label>
+      <label>Note (e.g. receipt number)<input name="note" maxlength="200"></label>
+      <div class="row"><button class="btn btn-primary">Save</button><span class="small" id="aEditMsg"></span></div>
+    </form>`);
+  $("#aEdit", m).onsubmit = async e => {
+    e.preventDefault(); const f = new FormData(e.target), msg = $("#aEditMsg");
+    const bodyU = { id: u.id, note: f.get("note") };
+    if (f.get("role") !== u.role) bodyU.role = f.get("role");
+    if ((f.get("plan") || null) !== (u.plan || null)) bodyU.plan = f.get("plan") || null;
+    if (+f.get("addCredits")) bodyU.addCredits = +f.get("addCredits");
+    if (+f.get("teacherMonths")) bodyU.teacherMonths = +f.get("teacherMonths");
+    if (f.get("teacherStatus")) bodyU.teacherStatus = f.get("teacherStatus");
+    if (Object.keys(bodyU).length <= 2) { msg.textContent = "Nothing to change."; return; }
+    try { await api("adminUpdateUser", bodyU); closeModal(); toast("Saved"); done(); } catch (err) { msg.textContent = err.message; msg.className = "small pm-err"; }
+  };
+}
+function adminCodes(body) {
+  const cs = window.__codeStats || {};
+  body.innerHTML = `<div class="grid grid-2" style="align-items:start">
+    <form class="card a-gen" id="aGen"><h3>Create activation codes</h3>
+      <p class="muted small">Each code works once. Give one code per person after their payment. Codes are shown only now: copy them.</p>
+      <label>Type<select name="type">${CODE_TYPES.map(([k, v, l]) => `<option value="${k}:${v}">${esc(l)}</option>`).join("")}</select></label>
+      <label>How many<input name="n" type="number" min="1" max="100" value="10"></label>
+      <button class="btn btn-primary">Create the codes</button>
+      <div id="aCodesOut"></div>
+    </form>
+    <div class="card"><h3>Codes in stock</h3><table class="a-table small-t"><thead><tr><th>Type</th><th>Created</th><th>Used</th><th>Left</th></tr></thead><tbody>
+      ${CODE_TYPES.map(([k, v, l]) => { const c = cs[k + ":" + v] || { total: 0, used: 0 }; return `<tr><td>${esc(l)}</td><td>${c.total}</td><td>${c.used}</td><td><b>${c.total - c.used}</b></td></tr>`; }).join("")}
+    </tbody></table></div></div>`;
+  $("#aGen").onsubmit = async e => {
+    e.preventDefault(); const f = new FormData(e.target), [kind, value] = f.get("type").split(":"), out = $("#aCodesOut");
+    out.innerHTML = `<p class="muted small">Creating…</p>`;
+    try {
+      const { codes } = await api("adminGenCodes", { kind, value, n: +f.get("n") });
+      out.innerHTML = `<pre class="sess-msg" id="codesTxt">${codes.map(esc).join("\n")}</pre><button type="button" class="btn btn-ghost btn-sm" id="copyCodes">Copy all</button>`;
+      $("#copyCodes").onclick = async () => { try { await navigator.clipboard.writeText(codes.join("\n")); toast("Codes copied"); } catch { toast("Select the codes and copy them"); } };
+    } catch (err) { out.innerHTML = `<p class="pm-err small">${esc(err.message)}</p>`; }
+  };
+}
+function adminClasses(body) {
+  api("adminBookings").then(({ bookings }) => {
+    body.innerHTML = bookings.length ? `<div class="a-table-wrap"><table class="a-table"><thead><tr><th>Date</th><th>Student</th><th>Teacher</th><th>Topic</th><th>Status</th><th>Room</th></tr></thead><tbody>
+      ${bookings.map(b => `<tr><td><b>${esc(b.day)}</b><small>${esc(b.slot)}</small></td><td>${esc(b.student_name || "—")}</td><td>${esc(b.teacher_name || "—")}</td><td>${esc(b.topic)}</td><td><span class="st ${b.status === "booked" ? "st-wait" : b.status === "done" ? "st-ok" : ""}">${esc(b.status)}</span></td><td><a href="${LC.roomBase + b.room}" target="_blank" rel="noopener">Open</a></td></tr>`).join("")}
+    </tbody></table></div>` : `<p class="muted">No class booked yet.</p>`;
+  }).catch(e => { body.innerHTML = `<p class="pm-err">${esc(e.message)}</p>`; });
+}
+function adminLog(body) {
+  api("adminGrants").then(({ grants }) => {
+    body.innerHTML = grants.length ? `<div class="a-table-wrap"><table class="a-table"><thead><tr><th>Date</th><th>What</th><th>By</th><th>Note</th></tr></thead><tbody>
+      ${grants.map(g => `<tr><td><small>${new Date(g.created_at).toLocaleString("en-GB")}</small></td><td><b>${esc(g.kind)}</b> · ${esc(g.value)}</td><td>${g.granted_by === "code" ? "activation code" : "admin"}</td><td>${esc(g.note)}</td></tr>`).join("")}
+    </tbody></table></div>` : `<p class="muted">Nothing yet. Every code used and every change you make appears here.</p>`;
+  }).catch(e => { body.innerHTML = `<p class="pm-err">${esc(e.message)}</p>`; });
 }
 
 /* =========================================================
@@ -2872,7 +3194,7 @@ function viewAccount() {
    ========================================================= */
 const ROUTES = {
   "": viewHome, test: viewTest, result: viewResult,
-  dashboard: viewDashboard, grammar: viewGrammar, vocab: p => viewVocab(p, "cards"), toolkit: viewToolkit, books: viewBooks, book: viewBook, about: viewAbout, premium: viewPremium, plans: viewPlans, live: viewLive, owner: viewOwner, teacher: viewTeacher, login: viewLogin, signup: viewSignup, forgot: viewForgot, account: viewAccount,
+  dashboard: viewDashboard, grammar: viewGrammar, vocab: p => viewVocab(p, "cards"), toolkit: viewToolkit, books: viewBooks, book: viewBook, about: viewAbout, premium: viewPremium, plans: viewPlans, live: viewLive, owner: viewOwner, teach: viewTeach, admin: viewAdmin, teacher: viewTeacher, login: viewLogin, signup: viewSignup, forgot: viewForgot, account: viewAccount,
   reading: viewReading, listening: viewListening, writing: viewWriting, speaking: p => viewSpeaking(p, "2"), progress: viewProgress
 };
 const NEEDS_LEVEL = ["toolkit", "dashboard", "grammar", "vocab", "reading", "listening", "writing", "speaking", "progress"];
@@ -2885,9 +3207,10 @@ function render() {
   // Parcours : compte Google → choix de l'offre → test de niveau → préparation de son niveau
   const needsTest = ["test", "result"].includes(r), needsPrep = NEEDS_LEVEL.includes(r) || ["books", "book"].includes(r);
   if (S.ownerTest && !fbUser) fbUser = { uid: "owner-test", displayName: "Owner Test", email: "", photoURL: "" };
+  if (["teach", "admin"].includes(r) && !PROFILE) { if (r === "teach") { S.signupAs = "teacher"; toast("Create your teacher account"); location.hash = "#/signup"; } else { toast("Log in first"); location.hash = "#/login"; } return; }
   if (r === "live" && !fbUser) { toast("Create your free account first"); location.hash = "#/signup"; return; }
   if ((needsTest || needsPrep) && !fbUser) { toast("Create your free account first"); location.hash = "#/signup"; return; }
-  if (needsTest && planRank() < 1) { toast("Choose a plan to take the test"); location.hash = "#/plans"; return; }
+  if (needsTest && planRank() < 1 && !isTeacherAcc()) { toast("Choose a plan to take the test"); location.hash = "#/plans"; return; }
   if (needsPrep && planRank() < 2) { toast("The course is in the IELTS preparation plan"); location.hash = "#/plans"; return; }
   if (NEEDS_LEVEL.includes(r) && !S.level) { toast("Take the placement test first"); location.hash = "#/test"; return; }
   updateTop();
@@ -2917,5 +3240,6 @@ document.addEventListener("keydown", e => {
 });
 
 window.addEventListener("hashchange", render);
+refreshMe();
 applyTheme();
 render();
