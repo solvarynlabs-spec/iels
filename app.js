@@ -227,12 +227,12 @@ function toggleTheme() {
   save(); applyTheme(); updateTop();
 }
 
-const PAGE_TITLES = { dashboard: "Dashboard", grammar: "Grammar", vocab: "Vocabulary", reading: "Reading", listening: "Listening", writing: "Writing", speaking: "Speaking", progress: "My progress", toolkit: "Toolkit", books: "Collins books", book: "My study book", plans: "My plan", premium: "My plan", account: "My account", teacher: "Teacher correction" };
+const PAGE_TITLES = { dashboard: "Dashboard", grammar: "Grammar", vocab: "Vocabulary", reading: "Reading", listening: "Listening", writing: "Writing", speaking: "Speaking", progress: "My progress", toolkit: "Toolkit", books: "Collins books", book: "My study book", plans: "My plan", premium: "My plan", live: "Live classes", account: "My account", teacher: "Teacher correction" };
 const brandHTML = `<a href="#/" class="brand"><span class="brand-logo">i</span><span>IELTS<b>Pro</b></span></a>`;
 
 function updateTop() {
   const [route, p] = location.hash.replace(/^#\/?/, "").split("/");
-  const isApp = !!S.level && (NEEDS_LEVEL.includes(route) || ["books", "book", "premium", "plans", "teacher", "account"].includes(route));
+  const isApp = !!S.level && (NEEDS_LEVEL.includes(route) || ["books", "book", "premium", "plans", "live", "teacher", "account"].includes(route));
   document.body.classList.toggle("appmode", isApp);
   document.body.classList.toggle("public", !isApp);
   const dark = document.documentElement.dataset.theme === "dark";
@@ -254,6 +254,7 @@ function updateTop() {
       ${link("book", "open", "My study book", null, "#e4002b")}
       ${link("books", "book", "Collins books", null, "#e4002b")}
       <div class="side-label">Premium</div>
+      ${link("live", "play", "Live classes", null, "#e4002b")}
       ${link("teacher", "pen", "Teacher correction", null, "#e4002b")}
       ${link("plans", "star", planRank() ? "My plan" : "Plans", null, "#e4002b")}
       <div class="side-label">${L.id} modules</div>
@@ -275,7 +276,7 @@ function updateTop() {
     $("#sidebar").innerHTML = "";
     const onHome = route === "";
     $("#topbar").innerHTML = `${brandHTML}
-      <nav class="pubnav">${onHome ? [["format", "The exam"], ["score", "Score calculator"], ["criteres", "Criteria"], ["modules", "Practice"], ["faq", "FAQ"]].map(([id, n]) => `<button data-scroll="${id}">${n}</button>`).join("") : `<button data-go="">Home</button>`}<button data-go="books">Books</button><button data-go="about">About</button><button data-go="plans" class="nav-premium">Plans</button></nav>
+      <nav class="pubnav">${onHome ? [["format", "The exam"], ["score", "Score calculator"], ["criteres", "Criteria"], ["modules", "Practice"], ["faq", "FAQ"]].map(([id, n]) => `<button data-scroll="${id}">${n}</button>`).join("") : `<button data-go="">Home</button>`}<button data-go="books">Books</button><button data-go="about">About</button><button data-go="live">Live classes</button><button data-go="plans" class="nav-premium">Plans</button></nav>
       <div class="top-actions">${flagPair("sm")}${themeBtn}${fbUser ? `<a class="avatar" href="#/account" title="My account">${initials(fbUser.displayName || fbUser.email)}</a>` : `<a class="btn btn-ghost btn-sm auth-link" href="#/login">Log in</a>`}
         ${S.level ? `<a class="btn btn-dark btn-sm" href="#/dashboard">My dashboard ${ic("arrow", "sm arrow")}</a>` : route === "test" ? "" : `<a class="btn btn-primary btn-sm" href="#/test">Take the test ${ic("arrow", "sm arrow")}</a>`}
       </div>`;
@@ -2375,6 +2376,10 @@ const planOf = id => PLAN_LIST.find(p => p.id === id);
 // Rang de l'offre active : 0 = aucune, 1 = niveau, 2 = préparation, 3 = préparation + professeur
 const planRank = () => S.plan && planOf(S.plan.id) ? planOf(S.plan.id).rank : (S.premium && S.premium.since ? 3 : 0);
 const isPremium = () => planRank() >= 3;
+const LIVE_LIST = typeof LIVE_PACKS !== "undefined" ? LIVE_PACKS : [];
+const LC = typeof LIVE_CONFIG !== "undefined" ? LIVE_CONFIG : { teacher: "Your teacher", minutes: 60, closedDays: [5], slots: ["17:00"], roomBase: "https://meet.jit.si/" };
+const offerOf = id => planOf(id) || LIVE_LIST.find(p => p.id === id);
+const liveState = () => (S.live = S.live || { credits: 0, sessions: [], used: [] });
 const money = n => `${Number(n).toLocaleString("fr-FR").replace(/\s/g, " ")} ${PC.currency}`;
 const priceTxt = () => `${PC.price.toLocaleString("fr-FR").replace(/ /g, " ")} ${PC.currency}`;
 async function sha256Hex(txt) {
@@ -2418,7 +2423,7 @@ function viewPlans(p) {
   const rank = planRank(), cur = S.plan && planOf(S.plan.id);
   const canPay = !!(PC.sofizpayAccount || PC.sofizpayLink);
   const backFromPay = p === "paid";
-  const pending = S.payStarted && planOf(S.payStarted.plan);
+  const pending = S.payStarted && offerOf(S.payStarted.plan);
   const name = fbUser ? (fbUser.displayName || "").split(" ")[0] : "";
   app.innerHTML = `<div class="${S.level ? "" : "wrap"}" style="${S.level ? "" : "padding-top:30px;padding-bottom:60px"}">
     ${backFromPay ? `<div class="pay-back fade-in"><b>Thank you! Your payment was sent to SofizPay.</b><span>Send your receipt (step 2) to receive your activation code, then enter it in step 3.</span></div>` : ""}
@@ -2446,17 +2451,45 @@ function viewPlans(p) {
       }).join("")}
     </section>
 
+    <section class="live-offer" id="live">
+      <div class="live-offer-head">
+        <div>
+          <span class="eyebrow">Live classes · video call</span>
+          <h2 class="h2-sec">Study face to face with a teacher, online.</h2>
+          <p class="muted">A private video class, like Zoom, between you and your IELTS teacher. Practise Speaking for real, review your Writing on screen and ask all your questions. Works on phone and computer, nothing to install.</p>
+        </div>
+        ${liveCallMock()}
+      </div>
+      <div class="plan-grid">
+        ${LIVE_LIST.map((pk, i) => `<article class="plan-card ${pk.best ? "best" : ""}" style="--d:${i * .08}s">
+          ${pk.best ? `<span class="plan-badge">Best value</span>` : ""}
+          <h3>${esc(pk.name)}</h3>
+          <p class="plan-tag">${esc(pk.tagline)}</p>
+          <div class="plan-price">${Number(pk.price).toLocaleString("fr-FR").replace(/\s/g, " ")}<small>${PC.currency}</small></div>
+          <span class="plan-note">${pk.sessions > 1 ? `${money(Math.round(pk.price / pk.sessions))} per session · ` : ""}${LC.minutes} min each</span>
+          <ul>${pk.features.map(f => `<li>${esc(f)}</li>`).join("")}</ul>
+          ${canPay ? `<button class="btn ${pk.best ? "btn-primary" : "btn-dark"}" data-live="${pk.id}">Book · ${money(pk.price)} ${ic("arrow", "sm arrow")}</button>` : `<button class="btn btn-ghost" disabled>Online payment coming soon</button>`}
+        </article>`).join("")}
+      </div>
+      ${liveState().credits || liveState().sessions.length ? `<p class="plan-current" style="display:flex">${ic("check", "sm")} You have <b>${liveState().credits}</b> live session(s) left · <a href="#/live">Book or join a class →</a></p>` : ""}
+    </section>
+
     <section class="pm-steps">
       <h2 class="h2-sec">How it works</h2>
       <ol>
         <li><span class="pm-n">01</span><div><b>Choose a plan and pay with SofizPay</b><p>Pay by CIB or Edahabia card. The payment page is run by SofizPay: IELTS Pro never sees your card details.</p></div></li>
         <li><span class="pm-n">02</span><div><b>Send your payment receipt</b><p>Send a screenshot of your receipt${pending ? ` for <b>${esc(pending.name)}</b>` : ""}. We reply with your personal activation code.</p><div class="row">${contactButtons("IELTS Pro — payment receipt", `Hello, I have paid for IELTS Pro (${pending ? pending.name : "plan"}). Here is my receipt (attached). My name: ${fbUser ? fbUser.displayName : ""} · ${fbUser ? fbUser.email : ""}`)}</div></div></li>
-        <li><span class="pm-n">03</span><div><b>Enter your activation code</b><p>The code unlocks your plan. Then you take the placement test and go straight to the course for your level.</p>
-          <form class="pm-code" id="codeForm" autocomplete="off"><input id="codeIn" placeholder="IELTS-XXXX-XXXX" maxlength="20" aria-label="Activation code"><button class="btn btn-primary">Activate</button></form>
+        <li><span class="pm-n">03</span><div><b>Enter your activation code</b><p>The code unlocks your plan or your live classes. Then you take the placement test and go straight to the course for your level.</p>
+          <form class="pm-code" id="codeForm" autocomplete="off"><input id="codeIn" placeholder="IELTS-XXXX-XXXX or LIVE-XXXX-XXXX" maxlength="20" aria-label="Activation code"><button class="btn btn-primary">Activate</button></form>
           <p class="small" id="codeMsg"></p></div></li>
       </ol>
     </section>
   </div>`;
+  $$("[data-live]", app).forEach(b => b.onclick = () => {
+    if (!fbUser) { toast("Create your account first"); location.hash = "#/signup"; return; }
+    openPayForm(offerOf(b.dataset.live));
+  });
+  if (p === "live") setTimeout(() => $("#live")?.scrollIntoView({ behavior: "smooth", block: "start" }), 300);
   $$("[data-plan]", app).forEach(b => b.onclick = () => {
     if (!fbUser) { toast("Create your account first"); location.hash = "#/signup"; return; }
     openPayForm(planOf(b.dataset.plan));
@@ -2466,8 +2499,15 @@ function viewPlans(p) {
     e.preventDefault();
     const code = $("#codeIn").value.trim().toUpperCase().replace(/\s+/g, "");
     const msg = $("#codeMsg");
-    if (!/^IELTS-[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(code)) { msg.textContent = "The code should look like IELTS-XXXX-XXXX."; msg.className = "small pm-err"; return; }
+    if (!/^(IELTS|LIVE)-[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(code)) { msg.textContent = "The code should look like IELTS-XXXX-XXXX or LIVE-XXXX-XXXX."; msg.className = "small pm-err"; return; }
     let h; try { h = await sha256Hex(code); } catch { msg.textContent = "Activation needs a secure connection (https)."; msg.className = "small pm-err"; return; }
+    const pk = LIVE_LIST.find(x => (x.codeHashes || []).includes(h));
+    if (pk) {
+      const L = liveState();
+      if (L.used.includes(h)) { msg.textContent = "This code was already used on this account."; msg.className = "small pm-err"; return; }
+      L.used.push(h); L.credits += pk.sessions; S.payStarted = null; save(); confetti();
+      toast(`${pk.sessions} live session(s) added!`); location.hash = "#/live"; return;
+    }
     const pl = PLAN_LIST.slice().sort((a, b) => b.rank - a.rank).find(x => (x.codeHashes || []).includes(h));
     if (!pl) { msg.textContent = "This code is not valid. Check it and try again."; msg.className = "small pm-err"; return; }
     if (pl.rank <= planRank()) { msg.textContent = `Your plan already includes ${pl.name}.`; msg.className = "small pm-err"; return; }
@@ -2479,6 +2519,133 @@ function viewPlans(p) {
   };
 }
 const viewPremium = viewPlans;
+
+/* ---------- Cours en direct (vidéo) ---------- */
+function liveCallMock() {
+  const me = fbUser ? initials(fbUser.displayName || fbUser.email) : "YOU";
+  return `<div class="call-mock" aria-hidden="true">
+    <div class="cm-top"><span class="cm-live">● LIVE</span><span>IELTS Speaking · Part 2</span><span class="cm-time">24:18</span></div>
+    <div class="cm-tiles">
+      <div class="cm-tile cm-teacher"><div class="cm-av">T</div><span class="cm-name">${esc(LC.teacher)}</span><i class="cm-wave">${"<b></b>".repeat(5)}</i></div>
+      <div class="cm-tile cm-me"><div class="cm-av">${esc(me)}</div><span class="cm-name">You</span></div>
+    </div>
+    <div class="cm-card"><small>Cue card</small><b>Describe a place you would like to visit in the UK.</b></div>
+    <div class="cm-bar"><span>🎙️</span><span>📷</span><span>🖥️</span><span>💬</span><span class="cm-end">Leave</span></div>
+  </div>`;
+}
+const pad2 = n => String(n).padStart(2, "0");
+const isoDay = d => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+const sessionStart = ss => new Date(`${ss.day}T${ss.slot}:00`);
+const roomUrl = ss => LC.roomBase + ss.room;
+const fmtSession = ss => sessionStart(ss).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" }) + " · " + ss.slot;
+function sessionMessage(ss) {
+  return `Hello, I booked an IELTS Pro live class.\n\nStudent: ${fbUser ? fbUser.displayName : ""} (${fbUser ? fbUser.email : ""})\nLevel: ${S.level || "not tested yet"}\nDate: ${fmtSession(ss)} (${LC.minutes} min)\nTopic: ${ss.topic}\nVideo room: ${roomUrl(ss)}\n\nPlease confirm. Thank you!`;
+}
+function viewLive(p) {
+  const L = liveState(), now = Date.now();
+  const days = []; for (let i = 1; days.length < 12 && i < 30; i++) { const d = new Date(); d.setDate(d.getDate() + i); if (!(LC.closedDays || []).includes(d.getDay())) days.push(d); }
+  const taken = new Set(L.sessions.filter(x => x.status !== "cancelled").map(x => x.day + " " + x.slot));
+  const upcoming = L.sessions.filter(x => x.status !== "cancelled" && sessionStart(x).getTime() + LC.minutes * 60000 > now).sort((a, b) => sessionStart(a) - sessionStart(b));
+  const past = L.sessions.filter(x => x.status !== "cancelled" && sessionStart(x).getTime() + LC.minutes * 60000 <= now);
+  const topics = ["Speaking practice", "Writing review", "Listening & Reading strategies", "Full mock test", "My questions"];
+  app.innerHTML = `<div class="${S.level ? "" : "wrap"}" style="${S.level ? "" : "padding-top:30px;padding-bottom:60px"}">
+    <section class="live-hero fade-in">
+      <div>
+        <span class="eyebrow" style="color:#fff">Live classes · video call</span>
+        <h1 class="display">Your class with a real teacher.</h1>
+        <p>Book a ${LC.minutes}-minute video class, send the request to your teacher, then join the class room at the time of your session. Nothing to install: it opens in your browser, on phone or computer.</p>
+        <div class="live-credits"><b>${L.credits}</b><span>session(s) left</span>${L.credits ? "" : `<a class="btn btn-white btn-sm" href="#/plans/live">Buy live sessions ${ic("arrow", "sm arrow")}</a>`}</div>
+      </div>
+      ${liveCallMock()}
+    </section>
+
+    ${upcoming.length ? `<section class="live-block"><h2 class="h2-sec">My next classes</h2><div class="sess-list">${upcoming.map(ss => {
+      const st = sessionStart(ss).getTime(), open = now >= st - 15 * 60000;
+      const mins = Math.round((st - now) / 60000);
+      const when = mins > 1440 ? `in ${Math.round(mins / 1440)} day(s)` : mins > 60 ? `in ${Math.round(mins / 60)} h` : mins > 0 ? `in ${mins} min` : "now";
+      return `<article class="sess-card ${open ? "open" : ""}">
+        <div class="sess-date"><b>${sessionStart(ss).getDate()}</b><span>${sessionStart(ss).toLocaleDateString("en-GB", { month: "short" })}</span></div>
+        <div class="sess-info"><b>${esc(fmtSession(ss))}</b><span>${esc(ss.topic)} · ${LC.minutes} min · <em>${when}</em></span><code>${esc(roomUrl(ss).replace("https://", ""))}</code></div>
+        <div class="sess-actions">
+          <a class="btn ${open ? "btn-primary" : "btn-dark"} btn-sm" href="${roomUrl(ss)}" target="_blank" rel="noopener">${ic("play", "sm")} ${open ? "Join the class now" : "Open the class room"}</a>
+          <button class="btn btn-ghost btn-sm" data-send="${ss.id}">Send to teacher</button>
+          <button class="link-btn" data-cancel="${ss.id}">Cancel</button>
+        </div>
+      </article>`;
+    }).join("")}</div></section>` : ""}
+
+    <section class="live-block live-book">
+      <h2 class="h2-sec">Book a class</h2>
+      ${L.credits ? `<form id="bookForm">
+        <p class="small muted" style="margin:0">1. Choose a day</p>
+        <div class="chip-row" id="dayRow">${days.map((d, i) => `<label class="chip"><input type="radio" name="day" value="${isoDay(d)}" ${i === 0 ? "checked" : ""}><span><small>${d.toLocaleDateString("en-GB", { weekday: "short" })}</small><b>${d.getDate()}</b><small>${d.toLocaleDateString("en-GB", { month: "short" })}</small></span></label>`).join("")}</div>
+        <p class="small muted">2. Choose a time</p>
+        <div class="chip-row" id="slotRow"></div>
+        <p class="small muted">3. What do you want to work on?</p>
+        <div class="chip-row">${topics.map((t, i) => `<label class="chip chip-wide"><input type="radio" name="topic" value="${esc(t)}" ${i === 0 ? "checked" : ""}><span>${esc(t)}</span></label>`).join("")}</div>
+        <button class="btn btn-primary btn-lg" type="submit">Book this class · 1 session ${ic("arrow", "arrow")}</button>
+      </form>` : `<div class="pm-lock" style="margin:0"><h3>No live session left</h3><p class="muted">Buy a session or a pack to book your video class with a teacher.</p><a class="btn btn-primary" href="#/plans/live">See live class prices ${ic("arrow", "sm arrow")}</a></div>`}
+    </section>
+
+    <section class="live-block live-check">
+      <div><h2 class="h2-sec">Check your camera and microphone</h2><p class="muted">Test them before your class, so you don't lose time. Allow access when your browser asks.</p>
+        <button class="btn btn-dark" id="camTest">${ic("play", "sm")} Start the test</button><p class="small" id="camMsg"></p></div>
+      <div class="cam-box"><video id="camVid" playsinline muted></video><div class="mic-meter"><i id="micBar"></i></div><span class="cam-ph" id="camPh">Camera preview</span></div>
+    </section>
+
+    ${past.length ? `<section class="live-block"><h2 class="h2-sec">Past classes</h2><ul class="past-list">${past.map(ss => `<li>${esc(fmtSession(ss))} · ${esc(ss.topic)}</li>`).join("")}</ul></section>` : ""}
+  </div>`;
+
+  const slotRow = $("#slotRow");
+  const drawSlots = () => {
+    if (!slotRow) return;
+    const day = $("input[name=day]:checked").value;
+    slotRow.innerHTML = LC.slots.map((sl, i) => { const busy = taken.has(day + " " + sl); return `<label class="chip ${busy ? "busy" : ""}"><input type="radio" name="slot" value="${sl}" ${busy ? "disabled" : ""}><span><b>${sl}</b><small>${busy ? "booked" : LC.minutes + " min"}</small></span></label>`; }).join("");
+    const first = $("input[name=slot]:not(:disabled)", slotRow); if (first) first.checked = true;
+  };
+  if (slotRow) { $$("input[name=day]").forEach(r => r.onchange = drawSlots); drawSlots(); }
+  const showSend = ss => {
+    openModal(`<div class="modal-head" style="--img:url('${photo("speaking", 900)}')"><span class="eyebrow">Class booked</span><h2>${esc(fmtSession(ss))}</h2><p>Send the request to your teacher. The message includes your video room link: your teacher joins you there.</p></div>
+      <div class="modal-body"><pre class="sess-msg">${esc(sessionMessage(ss))}</pre><div class="row">${contactButtons("IELTS Pro — live class request", sessionMessage(ss))}<button class="btn btn-ghost" id="copyMsg">Copy the message</button></div></div>`);
+    $("#copyMsg").onclick = async () => { try { await navigator.clipboard.writeText(sessionMessage(ss)); toast("Message copied"); } catch { toast("Select the message and copy it"); } };
+  };
+  const bf = $("#bookForm");
+  if (bf) bf.onsubmit = e => {
+    e.preventDefault();
+    const d = new FormData(bf);
+    if (!d.get("slot")) { toast("Choose a time"); return; }
+    const ss = { id: Date.now().toString(36), day: d.get("day"), slot: d.get("slot"), topic: d.get("topic"), status: "booked",
+      room: "IELTSPro-" + (fbUser ? fbUser.uid.slice(-4) : "") + Math.random().toString(36).slice(2, 10) };
+    L.sessions.push(ss); L.credits--; save();
+    render(); showSend(ss);
+  };
+  $$("[data-send]").forEach(b => b.onclick = () => showSend(L.sessions.find(x => x.id === b.dataset.send)));
+  $$("[data-cancel]").forEach(b => b.onclick = () => {
+    if (!b.dataset.sure) { b.dataset.sure = "1"; b.textContent = "Click again to cancel"; return; }
+    const ss = L.sessions.find(x => x.id === b.dataset.cancel); ss.status = "cancelled"; L.credits++; save();
+    toast("Class cancelled · your session is back. Tell your teacher."); render();
+  });
+  // test caméra + micro
+  let stream = null, raf = 0, actx = null;
+  const stop = () => { cancelAnimationFrame(raf); if (stream) stream.getTracks().forEach(t => t.stop()); stream = null; if (actx) actx.close(); actx = null; };
+  onLeave(stop);
+  $("#camTest").onclick = async () => {
+    const msg = $("#camMsg");
+    if (stream) { stop(); $("#camTest").innerHTML = `${ic("play", "sm")} Start the test`; $("#camPh").hidden = false; return; }
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      const v = $("#camVid"); v.srcObject = stream; await v.play(); $("#camPh").hidden = true;
+      actx = new AudioContext(); const an = actx.createAnalyser(); an.fftSize = 256; actx.createMediaStreamSource(stream).connect(an);
+      const buf = new Uint8Array(an.frequencyBinCount);
+      const tick = () => { an.getByteTimeDomainData(buf); let m = 0; for (const x of buf) m = Math.max(m, Math.abs(x - 128)); $("#micBar").style.width = Math.min(100, m * 1.6) + "%"; raf = requestAnimationFrame(tick); };
+      tick();
+      msg.textContent = "✓ Camera and microphone work. Say something: the red bar moves."; msg.className = "small ok-txt";
+      $("#camTest").innerHTML = "Stop the test";
+    } catch (err) {
+      msg.textContent = "Your browser blocked the camera or microphone. Allow access in the address bar, then try again."; msg.className = "small pm-err";
+    }
+  };
+}
 
 function viewTeacher(p) {
   const prem = isPremium();
@@ -2671,7 +2838,7 @@ function viewAccount() {
    ========================================================= */
 const ROUTES = {
   "": viewHome, test: viewTest, result: viewResult,
-  dashboard: viewDashboard, grammar: viewGrammar, vocab: p => viewVocab(p, "cards"), toolkit: viewToolkit, books: viewBooks, book: viewBook, about: viewAbout, premium: viewPremium, plans: viewPlans, teacher: viewTeacher, login: viewLogin, signup: viewSignup, forgot: viewForgot, account: viewAccount,
+  dashboard: viewDashboard, grammar: viewGrammar, vocab: p => viewVocab(p, "cards"), toolkit: viewToolkit, books: viewBooks, book: viewBook, about: viewAbout, premium: viewPremium, plans: viewPlans, live: viewLive, teacher: viewTeacher, login: viewLogin, signup: viewSignup, forgot: viewForgot, account: viewAccount,
   reading: viewReading, listening: viewListening, writing: viewWriting, speaking: p => viewSpeaking(p, "2"), progress: viewProgress
 };
 const NEEDS_LEVEL = ["toolkit", "dashboard", "grammar", "vocab", "reading", "listening", "writing", "speaking", "progress"];
@@ -2683,6 +2850,7 @@ function render() {
   const [r, p] = location.hash.replace(/^#\/?/, "").split("/");
   // Parcours : compte Google → choix de l'offre → test de niveau → préparation de son niveau
   const needsTest = ["test", "result"].includes(r), needsPrep = NEEDS_LEVEL.includes(r) || ["books", "book"].includes(r);
+  if (r === "live" && !fbUser) { toast("Create your free account first"); location.hash = "#/signup"; return; }
   if ((needsTest || needsPrep) && !fbUser) { toast("Create your free account first"); location.hash = "#/signup"; return; }
   if (needsTest && planRank() < 1) { toast("Choose a plan to take the test"); location.hash = "#/plans"; return; }
   if (needsPrep && planRank() < 2) { toast("The course is in the IELTS preparation plan"); location.hash = "#/plans"; return; }
