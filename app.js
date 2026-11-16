@@ -2293,6 +2293,7 @@ function viewAbout() {
     <section class="sec ad-share" id="share" style="padding-top:0">
       <div class="ad-poster-wrap ad-video-wrap reveal zoom">
         <video id="promoVid" src="assets/ielts-pro-promo.mp4" poster="assets/ielts-pro-promo.jpg" autoplay muted loop playsinline preload="metadata" aria-label="IELTS Pro promotional video"></video>
+        <button class="vid-sound" id="vidSound" aria-label="Turn the sound on"><span class="vs-ic">🔇</span><span class="vs-txt">Tap for sound</span></button>
         <button class="vid-toggle" id="vidToggle" aria-label="Pause the video">❚❚</button>
         <canvas id="poster" width="1080" height="1080" hidden></canvas>
       </div>
@@ -2301,7 +2302,7 @@ function viewAbout() {
         <h2 class="h2-sec">Share IELTS Pro</h2>
         <p class="muted">Help a friend, a cousin or your classmates prepare for IELTS. Download the video or the poster for Instagram, Facebook, TikTok or WhatsApp status, or share the link directly.</p>
         <div class="share-grid">
-          <a class="share-btn" href="assets/ielts-pro-promo.mp4" download="ielts-pro-solvarynlabs.mp4"><b>Download video</b><span>MP4 · 1080 × 1080 · 16 s</span></a>
+          <a class="share-btn" href="assets/ielts-pro-promo.mp4" download="ielts-pro-solvarynlabs.mp4"><b>Download video</b><span>MP4 · 1080 × 1080 · 16 s · with music</span></a>
           <button class="share-btn" id="dlPoster"><b>Download poster</b><span>PNG · 1080 × 1080</span></button>
           <a class="share-btn" href="https://wa.me/?text=${share}" target="_blank" rel="noopener"><b>WhatsApp</b><span>Send to a contact</span></a>
           <a class="share-btn" href="https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(SITE_URL)}" target="_blank" rel="noopener"><b>Facebook</b><span>Share on your page</span></a>
@@ -2326,6 +2327,16 @@ function viewAbout() {
   if (vid && vt) {
     vt.onclick = () => { if (vid.paused) { vid.play(); vt.textContent = "❚❚"; vt.setAttribute("aria-label", "Pause the video"); } else { vid.pause(); vt.textContent = "▶"; vt.setAttribute("aria-label", "Play the video"); } };
     if (matchMedia("(prefers-reduced-motion: reduce)").matches) { vid.pause(); vid.removeAttribute("autoplay"); vt.textContent = "▶"; }
+    const vs = $("#vidSound");
+    vs.onclick = () => {
+      vid.muted = !vid.muted;
+      if (!vid.muted) { vid.currentTime = 0; vid.play(); vt.textContent = "❚❚"; }
+      vs.classList.toggle("on", !vid.muted);
+      vs.querySelector(".vs-ic").textContent = vid.muted ? "🔇" : "🔊";
+      vs.querySelector(".vs-txt").textContent = vid.muted ? "Tap for sound" : "Sound on";
+      vs.setAttribute("aria-label", vid.muted ? "Turn the sound on" : "Turn the sound off");
+    };
+    onLeave(() => { vid.pause(); });
   }
   $("#dlPoster").onclick = () => { const a = document.createElement("a"); a.download = "ielts-pro-solvarynlabs.png"; a.href = $("#poster").toDataURL("image/png"); a.click(); toast("Poster downloaded"); };
   $("#copyLink").onclick = async () => { try { await navigator.clipboard.writeText(SITE_URL); toast("Link copied"); } catch { toast(SITE_URL); } };

@@ -1357,3 +1357,8 @@ a.avatar { text-decoration: none; display: grid !important; }
 .vid-toggle:hover { background: var(--red); transform: scale(1.06); }
 .vid-toggle:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
 .ad-video-wrap canvas[hidden] { display: none; }
+.vid-sound { position: absolute; left: 14px; bottom: 22px; display: inline-flex; align-items: center; gap: 8px; height: 44px; padding: 0 16px 0 12px; border: 0; border-radius: 22px; background: var(--red); color: #fff; font: inherit; font-weight: 800; font-size: .92rem; cursor: pointer; box-shadow: 0 8px 20px -8px rgba(228,0,43,.7); animation: vsPulse 1.8s ease-in-out infinite; transition: background .2s; }
+.vid-sound.on { background: rgba(20,20,20,.75); animation: none; box-shadow: none; }
+.vid-sound:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
+@keyframes vsPulse { 50% { transform: scale(1.06); } }
+@media (prefers-reduced-motion: reduce) { .vid-sound { animation: none; } }
