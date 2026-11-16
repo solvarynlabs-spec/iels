@@ -1693,3 +1693,27 @@ body.rtl .passage, body.rtl .question, body.rtl .option, body.rtl .req-text, bod
 body.rtl h1, body.rtl h2, body.rtl h3, body.rtl p, body.rtl li, body.rtl span, body.rtl a, body.rtl button, body.rtl label, body.rtl b, body.rtl small, body.rtl td, body.rtl th { unicode-bidi: plaintext; }
 body.rtl .plan-price, body.rtl .pay-total b, body.rtl .live-credits b, body.rtl .a-stat b, body.rtl .teach-stats b, body.rtl .rk-xp { direction: ltr; unicode-bidi: isolate; }
 body.rtl .plan-price { text-align: right; }
+
+/* ---------- Barre du haut : un seul menu de préférences ---------- */
+.pubnav button[data-go="books"] { color: var(--text); }
+.pubnav button[data-go="books"]:hover { color: var(--red); }
+.top-actions { gap: 12px; }
+.prefs { position: relative; }
+.prefs-btn { display: inline-flex; align-items: center; gap: 6px; height: 40px; padding: 0 12px; border: 1px solid var(--line-2); border-radius: 999px; background: var(--surface); color: var(--text); font: inherit; font-weight: 800; font-size: .82rem; letter-spacing: .04em; cursor: pointer; transition: border-color .2s, background .2s; }
+.prefs-btn:hover, .prefs-btn[aria-expanded="true"] { border-color: var(--text); }
+.prefs-btn:focus-visible { outline: 3px solid var(--red); outline-offset: 2px; }
+.prefs-btn .chev { opacity: .6; transition: transform .2s; }
+.prefs-btn[aria-expanded="true"] .chev { transform: rotate(180deg); }
+.prefs-pop { position: absolute; right: 0; top: calc(100% + 10px); z-index: 60; min-width: 220px; background: var(--surface); color: var(--text); border: 1px solid var(--line); border-radius: 14px; padding: 8px; box-shadow: 0 24px 50px -18px rgba(0,0,0,.35); animation: pageIn .25s var(--ease) both; }
+.prefs-label { padding: 8px 10px 4px; font-size: .7rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.prefs-item { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px; border: 0; border-radius: 9px; background: none; color: var(--text); font: inherit; font-weight: 600; cursor: pointer; text-align: start; }
+.prefs-item:hover { background: var(--surface-2); }
+.prefs-item.on { color: var(--red); font-weight: 800; }
+.prefs-sep { height: 1px; background: var(--line); margin: 6px 4px; }
+body.rtl .prefs-pop { right: auto; left: 0; }
+@media (max-width: 480px) { .prefs-btn span { display: none; } .prefs-btn { padding: 0 10px; } }
+/* arabe : menu sur une seule ligne */
+.pubnav button { white-space: nowrap; }
+body.rtl .pubnav { gap: 0; }
+body.rtl .pubnav button { padding: 0 10px; font-size: .95rem; }
+@media (max-width: 1280px) { body.rtl .pubnav button[data-scroll="faq"], body.rtl .pubnav button[data-scroll="criteres"] { display: none; } }

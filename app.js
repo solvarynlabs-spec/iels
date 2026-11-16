@@ -236,7 +236,7 @@ function updateTop() {
   document.body.classList.toggle("appmode", isApp);
   document.body.classList.toggle("public", !isApp);
   const dark = document.documentElement.dataset.theme === "dark";
-  const themeBtn = `<button class="icon-btn" id="themeBtn" title="Change theme" aria-label="Change theme">${ic(dark ? "sun" : "moon")}</button>`;
+  const themeBtn = prefsMenu(dark);
 
   if (isApp) {
     const L = lvl();
@@ -273,7 +273,7 @@ function updateTop() {
       <div class="top-actions">
         <span class="chip-stat fire" title="Study streak">${ic("calendar")}${S.streak.count} <span class="lbl">day${S.streak.count > 1 ? "s" : ""}</span></span>
         <span class="chip-stat xp" title="Activity points">${ic("chart")}${S.xp} <span class="lbl">pts</span></span>
-        ${langSwitch()}${themeBtn}${fbUser ? `<a class="avatar" href="#/account" title="My account">${initials(fbUser.displayName || fbUser.email)}</a>` : `<a class="btn btn-ghost btn-sm" href="#/login">Log in</a>`}
+        ${themeBtn}${fbUser ? `<a class="avatar" href="#/account" title="My account">${initials(fbUser.displayName || fbUser.email)}</a>` : `<a class="btn btn-ghost btn-sm" href="#/login">Log in</a>`}
       </div>`;
     $("#footer").innerHTML = `<div class="app-footer">IELTS Pro · made in Aïn Beïda by <a href="#/about">Solvarynlabs</a> · scores are estimates, not official results.</div>`;
   } else {
@@ -281,7 +281,7 @@ function updateTop() {
     const onHome = route === "";
     $("#topbar").innerHTML = `${brandHTML}
       <nav class="pubnav">${onHome ? [["format", "The exam"], ["score", "Score calculator"], ["criteres", "Criteria"], ["modules", "Practice"], ["faq", "FAQ"]].map(([id, n]) => `<button data-scroll="${id}">${n}</button>`).join("") : `<button data-go="">Home</button>`}<button data-go="books">Books</button><button data-go="about">About</button><button data-go="live">Live classes</button>${isAdmin() ? `<button data-go="admin">Admin</button>` : isTeacherAcc() ? `<button data-go="teach">Teacher space</button>` : `<button data-go="teach">Teach</button>`}<button data-go="plans" class="nav-premium">Plans</button></nav>
-      <div class="top-actions">${langSwitch()}<button class="btn btn-ghost btn-sm install-btn" data-install>Install app</button>${flagPair("sm")}${themeBtn}${fbUser ? `<a class="avatar" href="#/account" title="My account">${initials(fbUser.displayName || fbUser.email)}</a>` : `<a class="btn btn-ghost btn-sm auth-link" href="#/login">Log in</a>`}
+      <div class="top-actions">${themeBtn}${fbUser ? `<a class="avatar" href="#/account" title="My account">${initials(fbUser.displayName || fbUser.email)}</a>` : `<a class="btn btn-ghost btn-sm auth-link" href="#/login">Log in</a>`}
         ${S.level ? `<a class="btn btn-dark btn-sm" href="#/dashboard">My dashboard ${ic("arrow", "sm arrow")}</a>` : route === "test" ? "" : `<a class="btn btn-primary btn-sm" href="#/test">Take the test ${ic("arrow", "sm arrow")}</a>`}
       </div>`;
     $("#footer").innerHTML = onHome ? `<footer class="site-footer"><div class="wrap">
@@ -294,7 +294,28 @@ function updateTop() {
         <div class="foot-bottom"><span>© ${new Date().getFullYear()} IELTS Pro — made in Aïn Beïda, Algeria by <a href="#/about" style="color:#fff">Solvarynlabs</a>. An independent practice site, not affiliated with IELTS, the British Council, IDP or Cambridge.</span><span>Scores are estimates, not official results.</span></div>
       </div></footer>` : "";
   }
-  $("#themeBtn").onclick = toggleTheme;
+  bindPrefs();
+}
+const LANG_NAMES = { en: "English", fr: "Français", ar: "العربية" };
+const globeSVG = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.6 3.8 5.6 3.8 9s-1.3 6.4-3.8 9c-2.5-2.6-3.8-5.6-3.8-9S9.5 5.6 12 3z"/></svg>`;
+function prefsMenu(dark) {
+  return `<div class="prefs">
+    <button class="prefs-btn" id="prefsBtn" aria-haspopup="true" aria-expanded="false" aria-label="Language and display">${globeSVG}<span>${(typeof UI_LANG !== "undefined" ? UI_LANG : "en").toUpperCase()}</span><svg class="chev" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2"/></svg></button>
+    <div class="prefs-pop" id="prefsPop" hidden>
+      <div class="prefs-label">Language</div>
+      ${Object.keys(LANG_NAMES).map(k => `<button class="prefs-item ${typeof UI_LANG !== "undefined" && UI_LANG === k ? "on" : ""}" data-lang="${k}"><span>${LANG_NAMES[k]}</span>${typeof UI_LANG !== "undefined" && UI_LANG === k ? "✓" : ""}</button>`).join("")}
+      <div class="prefs-sep"></div>
+      <button class="prefs-item" id="themeBtn"><span>${dark ? "Light mode" : "Dark mode"}</span>${ic(dark ? "sun" : "moon", "sm")}</button>
+      <button class="prefs-item install-btn" data-install><span>Install the app</span>📱</button>
+    </div></div>`;
+}
+function bindPrefs() {
+  const b = $("#prefsBtn"), pop = $("#prefsPop"); if (!b) return;
+  const close = () => { pop.hidden = true; b.setAttribute("aria-expanded", "false"); };
+  b.onclick = e => { e.stopPropagation(); pop.hidden = !pop.hidden; b.setAttribute("aria-expanded", String(!pop.hidden)); };
+  $("#themeBtn").onclick = () => { close(); toggleTheme(); };
+  document.addEventListener("click", e => { if (!e.target.closest(".prefs")) close(); });
+  document.addEventListener("keydown", e => { if (e.key === "Escape") close(); });
 }
 
 /* Boutons de défilement et de navigation : une seule écoute globale,
@@ -1317,8 +1338,8 @@ function viewDashboard() {
   const sk = k => P && P.skills[k] ? P.skills[k].pct : undefined;
   const mix = (a, b) => a === undefined ? (b ?? null) : b === undefined ? a : Math.round((a + b) / 2);
   const radar = [
-    { label: "Grammaire", color: "#6366f1", v: mix(score("grammar"), sk("grammar")) },
-    { label: "Vocabulaire", color: "#f59e0b", v: mix(score("vocab"), sk("vocab")) },
+    { label: "Grammar", color: "#6366f1", v: mix(score("grammar"), sk("grammar")) },
+    { label: "Vocabulary", color: "#f59e0b", v: mix(score("vocab"), sk("vocab")) },
     { label: "Reading", color: "#10b981", v: mix(score("reading"), sk("reading")) },
     { label: "Listening", color: "#ec4899", v: mix(score("listening"), sk("listening")) },
     { label: "Writing", color: "#f97316", v: score("writing") ?? null },
@@ -1366,7 +1387,7 @@ function viewDashboard() {
         <p class="muted small" style="margin:0;font-weight:600">${band ? (band >= L.target ? "Target reached in the test: aim for the next level." : `<b style="color:var(--accent)">+${(L.target - band).toFixed(1)}</b> to go to reach your target.`) : "Take the test to find your band."}</p>
       </section>
 
-      <section class="c-3 card kpi lift reveal" style="--d:.05s;--mc:#6366f1"><div class="top"><span class="ic-box">${ic("chart")}</span><span class="trend">+${weekXP} / 7 j</span></div>
+      <section class="c-3 card kpi lift reveal" style="--d:.05s;--mc:#6366f1"><div class="top"><span class="ic-box">${ic("chart")}</span><span class="trend">+${weekXP} / 7 days</span></div>
         <div class="val" data-count="${S.xp}">0</div><div class="lbl">Activity points</div>${sparkline(week.map(d => d.v), "#6366f1")}</section>
       <section class="c-3 card kpi lift reveal" style="--d:.1s;--mc:#f97316"><div class="top"><span class="ic-box">${ic("calendar")}</span>${S.streak.last === today() ? `<span class="trend">done today</span>` : `<span class="trend warn">to do</span>`}</div>
         <div class="val"><span data-count="${S.streak.count}">0</span> <span style="font-size:1.1rem" class="muted">day${S.streak.count > 1 ? "s" : ""}</span></div><div class="lbl">Study streak</div>${sparkline(week.map(d => d.v ? 1 : 0), "#f97316")}</section>
@@ -1459,7 +1480,7 @@ function viewVocab(p, tab = "cards") {
       <div class="tabs">
         <button data-t="cards" class="${tab === "cards" ? "active" : ""}">Flashcards</button>
         <button data-t="quiz" class="${tab === "quiz" ? "active" : ""}">Quiz</button>
-        <button data-t="list" class="${tab === "list" ? "active" : ""}">Liste</button>
+        <button data-t="list" class="${tab === "list" ? "active" : ""}">List</button>
       </div><div class="spacer"></div>
       <span class="chip-stat">${knownN} / ${V.length} words learned</span>
     </div><div id="vz"></div></div>`;
@@ -2499,7 +2520,7 @@ function viewPlans(p) {
       <span class="eyebrow">${name ? `Welcome, ${esc(name)}` : "Choose your plan"}</span>
       <h1 class="display">What do you want to do?</h1>
       <p class="lead">Only want your IELTS band? Or want to prepare for the exam at your level? Choose a plan: you take the test right after, and the course for your level opens automatically.</p>
-      ${cur ? `<div class="plan-current">${ic("check", "sm")} Your plan: <b>${esc(cur.name)}</b> · since ${new Date(PROFILE.plan_since).toLocaleDateString("en-GB")}${!S.level ? ` · <a href="#/test">Take the test now →</a>` : ` · <a href="#/dashboard">Open my course →</a>`}</div>` : ""}
+      ${cur ? `<div class="plan-current">${ic("check", "sm")} Your plan: <b>${esc(cur.name)}</b> ${PROFILE.plan_since ? " · since " + new Date(PROFILE.plan_since).toLocaleDateString("en-GB") : ""}${!S.level ? ` · <a href="#/test">Take the test now →</a>` : ` · <a href="#/dashboard">Open my course →</a>`}</div>` : ""}
     </section>
 
     <section class="plan-grid">
@@ -3625,10 +3646,19 @@ function translateNode(root) {
   const dict = I18N[UI_LANG]; if (!dict) return;
   const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, { acceptNode: n => n.parentElement && !n.parentElement.closest("script,style,textarea,code,pre,.passage,.no-tr,.question,.option,.req-text,.msg,.sess-msg,.book-sheet,.sheet-wrap,.reading-text") ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT });
   const nodes = []; while (w.nextNode()) nodes.push(w.currentNode);
+  // titres composés de plusieurs morceaux (ex. un mot en couleur) : traduits en entier
+  (root.querySelectorAll ? [...root.querySelectorAll("h1,h2,h3,.h2-sec")] : []).forEach(h => {
+    if (h.closest(".passage,.no-tr,.question")) return;
+    const t = h.textContent.replace(/\s+/g, " ").trim(), tr = dict[t];
+    if (tr && h.children.length) h.textContent = tr;
+  });
+  const pats = (typeof I18N_PATTERNS !== "undefined" && I18N_PATTERNS[UI_LANG]) || [];
   nodes.forEach(n => {
-    const raw = n.nodeValue, t = raw.trim(); if (!t) return;
-    const tr = dict[t];
-    if (tr) { if (!I18N_ORIG.has(n)) I18N_ORIG.set(n, raw); n.nodeValue = raw.replace(t, tr); }
+    if (!n.isConnected) return;
+    const raw = n.nodeValue, t = raw.replace(/\s+/g, " ").trim(); if (!t) return;
+    let tr = dict[t];
+    if (!tr) for (const [re, rep] of pats) { if (re.test(t)) { tr = t.replace(re, rep); break; } }
+    if (tr) { if (!I18N_ORIG.has(n)) I18N_ORIG.set(n, raw); n.nodeValue = raw.replace(raw.trim(), tr); }
   });
   root.querySelectorAll && root.querySelectorAll("[placeholder]").forEach(el => { const t = el.getAttribute("placeholder"), tr = dict[t]; if (tr) el.setAttribute("placeholder", tr); });
 }

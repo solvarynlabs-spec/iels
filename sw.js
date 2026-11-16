@@ -1,7 +1,7 @@
 /* IELTS Pro — service worker : l'application s'installe et s'ouvre même avec une connexion faible.
    Les pages du site sont servies depuis le réseau d'abord, puis depuis le cache si le réseau manque.
    Le serveur (Supabase) et les paiements ne sont jamais mis en cache. */
-const CACHE = "ielts-pro-v41";
+const CACHE = "ielts-pro-v43";
 const CORE = ["./", "index.html", "style.css", "config.js", "data.js", "tests.js", "i18n.js", "app.js", "manifest.webmanifest", "assets/icon-192.png", "assets/icon-512.png"];
 self.addEventListener("install", e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(CORE)).then(() => self.skipWaiting())); });
 self.addEventListener("activate", e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())); });
