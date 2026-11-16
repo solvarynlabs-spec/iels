@@ -2216,7 +2216,7 @@ function devScene(i) {
 
 function viewAbout() {
   const exercises = LEVELS.reduce((n, l) => n + allItemsCount(l), 0);
-  const share = encodeURIComponent(`IELTS Pro — free IELTS preparation, made in Aïn Beïda by Solvarynlabs: ${SITE_URL}`);
+  const share = encodeURIComponent(`IELTS Pro — find your IELTS level and prepare for the exam, made in Aïn Beïda by Solvarynlabs: ${SITE_URL}`);
   app.innerHTML = `
   <section class="ad-hero">
     <div class="ad-bg" aria-hidden="true">${["IELTS", "BAND 7", "READING", "WRITING", "SPEAKING", "LISTENING", "FREE"].map((w, i) => `<span style="--i:${i}">${w}</span>`).join("")}</div>
@@ -2291,16 +2291,21 @@ function viewAbout() {
     </section>
 
     <section class="sec ad-share" id="share" style="padding-top:0">
-      <div class="ad-poster-wrap reveal zoom"><canvas id="poster" width="1080" height="1080" aria-label="IELTS Pro poster"></canvas></div>
+      <div class="ad-poster-wrap ad-video-wrap reveal zoom">
+        <video id="promoVid" src="assets/ielts-pro-promo.mp4" poster="assets/ielts-pro-promo.jpg" autoplay muted loop playsinline preload="metadata" aria-label="IELTS Pro promotional video"></video>
+        <button class="vid-toggle" id="vidToggle" aria-label="Pause the video">❚❚</button>
+        <canvas id="poster" width="1080" height="1080" hidden></canvas>
+      </div>
       <div class="reveal">
         <span class="eyebrow">Spread the word</span>
         <h2 class="h2-sec">Share IELTS Pro</h2>
-        <p class="muted">Help a friend, a cousin or your classmates prepare for free. Download the poster for Instagram, Facebook or WhatsApp status, or share the link directly.</p>
+        <p class="muted">Help a friend, a cousin or your classmates prepare for IELTS. Download the video or the poster for Instagram, Facebook, TikTok or WhatsApp status, or share the link directly.</p>
         <div class="share-grid">
+          <a class="share-btn" href="assets/ielts-pro-promo.mp4" download="ielts-pro-solvarynlabs.mp4"><b>Download video</b><span>MP4 · 1080 × 1080 · 16 s</span></a>
           <button class="share-btn" id="dlPoster"><b>Download poster</b><span>PNG · 1080 × 1080</span></button>
           <a class="share-btn" href="https://wa.me/?text=${share}" target="_blank" rel="noopener"><b>WhatsApp</b><span>Send to a contact</span></a>
           <a class="share-btn" href="https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(SITE_URL)}" target="_blank" rel="noopener"><b>Facebook</b><span>Share on your page</span></a>
-          <a class="share-btn" href="https://t.me/share/url?url=${encodeURIComponent(SITE_URL)}&text=${encodeURIComponent("IELTS Pro — free IELTS preparation, made in Aïn Beïda by Solvarynlabs")}" target="_blank" rel="noopener"><b>Telegram</b><span>Share in a group</span></a>
+          <a class="share-btn" href="https://t.me/share/url?url=${encodeURIComponent(SITE_URL)}&text=${encodeURIComponent("IELTS Pro — find your IELTS level and prepare for the exam, made in Aïn Beïda by Solvarynlabs")}" target="_blank" rel="noopener"><b>Telegram</b><span>Share in a group</span></a>
           <button class="share-btn" id="copyLink"><b>Copy link</b><span>${SITE_URL.replace("https://", "")}</span></button>
         </div>
       </div>
@@ -2311,12 +2316,17 @@ function viewAbout() {
       <div>
         <span class="eyebrow" style="color:#fff">IELTS Pro · by ${STUDIO.name}</span>
         <h2>Made in ${STUDIO.city}. Built for your future.</h2>
-        <p>Take the free placement test now and get your study book for your level.</p>
-        <div class="row" style="margin-top:24px"><a class="btn btn-white btn-lg" href="#/test">Take the free test ${ic("arrow", "arrow")}</a></div>
+        <p>Create your account, find your level and start the course for your level.</p>
+        <div class="row" style="margin-top:24px"><a class="btn btn-white btn-lg" href="#/test">Take the test ${ic("arrow", "arrow")}</a></div>
       </div>
     </section>
   </div>`;
   drawPoster($("#poster"));
+  const vid = $("#promoVid"), vt = $("#vidToggle");
+  if (vid && vt) {
+    vt.onclick = () => { if (vid.paused) { vid.play(); vt.textContent = "❚❚"; vt.setAttribute("aria-label", "Pause the video"); } else { vid.pause(); vt.textContent = "▶"; vt.setAttribute("aria-label", "Play the video"); } };
+    if (matchMedia("(prefers-reduced-motion: reduce)").matches) { vid.pause(); vid.removeAttribute("autoplay"); vt.textContent = "▶"; }
+  }
   $("#dlPoster").onclick = () => { const a = document.createElement("a"); a.download = "ielts-pro-solvarynlabs.png"; a.href = $("#poster").toDataURL("image/png"); a.click(); toast("Poster downloaded"); };
   $("#copyLink").onclick = async () => { try { await navigator.clipboard.writeText(SITE_URL); toast("Link copied"); } catch { toast(SITE_URL); } };
 }
@@ -2330,10 +2340,10 @@ function drawPoster(c) {
   // grands mots en filigrane
   x.save(); x.globalAlpha = .1; x.fillStyle = "#fff"; x.font = `800 150px ${F}`;
   ["READING", "WRITING", "SPEAKING"].forEach((w, i) => x.fillText(w, -40 + i * 60, 210 + i * 150)); x.restore();
-  x.fillStyle = "#fff"; x.font = `800 46px ${F}`; x.fillText("FREE · ONLINE · IN ENGLISH", 80, 120);
+  x.fillStyle = "#fff"; x.font = `800 46px ${F}`; x.fillText("ONLINE · IN ENGLISH", 80, 120);
   x.font = `800 190px ${F}`; x.fillText("IELTS", 70, 330); x.fillText("PRO", 70, 500);
   x.font = `600 46px ${F}`; x.fillText("Placement test · 72 exercises", 80, 580);
-  x.fillText("Free study books · Band 7 method", 80, 640);
+  x.fillText("5 full tests · Band 7 method", 80, 640);
   // drapeau algérien
   const fx = 80, fy = 780, fw = 150, fh = 100;
   x.fillStyle = "#006233"; x.fillRect(fx, fy, fw / 2, fh); x.fillStyle = "#fff"; x.fillRect(fx + fw / 2, fy, fw / 2, fh);

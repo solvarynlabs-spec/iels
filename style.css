@@ -1349,3 +1349,11 @@ a.avatar { text-decoration: none; display: grid !important; }
 .plan-card .btn { justify-content: center; }
 .plan-upsell { display: grid; gap: 6px; margin-top: 16px; padding: 16px 18px; background: var(--surface-2); border-left: 5px solid var(--red); }
 .plan-upsell .btn { justify-self: start; margin-top: 6px; }
+
+/* ---------- Vidéo promo (section Share) ---------- */
+.ad-video-wrap { position: relative; }
+.ad-video-wrap video { display: block; width: 100%; height: auto; aspect-ratio: 1 / 1; object-fit: cover; background: #141414; }
+.vid-toggle { position: absolute; right: 14px; bottom: 22px; width: 44px; height: 44px; border: 0; border-radius: 50%; background: rgba(20,20,20,.75); color: #fff; font-size: .9rem; cursor: pointer; transition: background .2s, transform .2s; }
+.vid-toggle:hover { background: var(--red); transform: scale(1.06); }
+.vid-toggle:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
+.ad-video-wrap canvas[hidden] { display: none; }
