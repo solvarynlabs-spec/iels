@@ -1,0 +1,15 @@
+{
+  "name": "IELTS Pro — find your level and prepare",
+  "short_name": "IELTS Pro",
+  "description": "IELTS placement tests, a course at your level and live classes with teachers.",
+  "start_url": "./#/",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#ffffff",
+  "theme_color": "#e4002b",
+  "icons": [
+    { "src": "assets/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "assets/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

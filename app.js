@@ -227,12 +227,12 @@ function toggleTheme() {
   save(); applyTheme(); updateTop();
 }
 
-const PAGE_TITLES = { dashboard: "Dashboard", grammar: "Grammar", vocab: "Vocabulary", reading: "Reading", listening: "Listening", writing: "Writing", speaking: "Speaking", progress: "My progress", toolkit: "Toolkit", books: "Collins books", book: "My study book", plans: "My plan", premium: "My plan", live: "Live classes", teach: "Teacher space", admin: "Admin", account: "My account", teacher: "Teacher correction" };
+const PAGE_TITLES = { dashboard: "Dashboard", grammar: "Grammar", vocab: "Vocabulary", reading: "Reading", listening: "Listening", writing: "Writing", speaking: "Speaking", progress: "My progress", toolkit: "Toolkit", books: "Collins books", book: "My study book", plans: "My plan", premium: "My plan", live: "Live classes", teach: "Teacher space", admin: "Admin", messages: "Messages", rank: "Weekly ranking", account: "My account", teacher: "Teacher correction" };
 const brandHTML = `<a href="#/" class="brand"><span class="brand-logo">i</span><span>IELTS<b>Pro</b></span></a>`;
 
 function updateTop() {
   const [route, p] = location.hash.replace(/^#\/?/, "").split("/");
-  const isApp = !!S.level && (NEEDS_LEVEL.includes(route) || ["books", "book", "premium", "plans", "live", "teacher", "account", "teach", "admin"].includes(route));
+  const isApp = !!S.level && (NEEDS_LEVEL.includes(route) || ["books", "book", "premium", "plans", "live", "teacher", "account", "teach", "admin", "messages", "rank"].includes(route));
   document.body.classList.toggle("appmode", isApp);
   document.body.classList.toggle("public", !isApp);
   const dark = document.documentElement.dataset.theme === "dark";
@@ -257,6 +257,8 @@ function updateTop() {
       ${isAdmin() ? link("admin", "grid", "Admin dashboard", null, "#141414") : ""}
       ${isAdmin() || isTeacherAcc() ? link("teach", "group", "Teacher space", null, "#0ea5e9") : ""}
       ${link("live", "play", "Live classes", null, "#e4002b")}
+      ${PROFILE ? link("messages", "group", "Messages" + (window.__unread ? ` <b class="unread-dot">${window.__unread}</b>` : ""), null, "#0ea5e9") : ""}
+      ${link("rank", "trophy", "Weekly ranking", null, "#f59e0b")}
       ${link("teacher", "pen", "Teacher correction", null, "#e4002b")}
       ${link("plans", "star", planRank() ? "My plan" : "Plans", null, "#e4002b")}
       <div class="side-label">${L.id} modules</div>
@@ -271,7 +273,7 @@ function updateTop() {
       <div class="top-actions">
         <span class="chip-stat fire" title="Study streak">${ic("calendar")}${S.streak.count} <span class="lbl">day${S.streak.count > 1 ? "s" : ""}</span></span>
         <span class="chip-stat xp" title="Activity points">${ic("chart")}${S.xp} <span class="lbl">pts</span></span>
-        ${themeBtn}${fbUser ? `<a class="avatar" href="#/account" title="My account">${initials(fbUser.displayName || fbUser.email)}</a>` : `<a class="btn btn-ghost btn-sm" href="#/login">Log in</a>`}
+        ${langSwitch()}${themeBtn}${fbUser ? `<a class="avatar" href="#/account" title="My account">${initials(fbUser.displayName || fbUser.email)}</a>` : `<a class="btn btn-ghost btn-sm" href="#/login">Log in</a>`}
       </div>`;
     $("#footer").innerHTML = `<div class="app-footer">IELTS Pro · made in Aïn Beïda by <a href="#/about">Solvarynlabs</a> · scores are estimates, not official results.</div>`;
   } else {
@@ -279,7 +281,7 @@ function updateTop() {
     const onHome = route === "";
     $("#topbar").innerHTML = `${brandHTML}
       <nav class="pubnav">${onHome ? [["format", "The exam"], ["score", "Score calculator"], ["criteres", "Criteria"], ["modules", "Practice"], ["faq", "FAQ"]].map(([id, n]) => `<button data-scroll="${id}">${n}</button>`).join("") : `<button data-go="">Home</button>`}<button data-go="books">Books</button><button data-go="about">About</button><button data-go="live">Live classes</button>${isAdmin() ? `<button data-go="admin">Admin</button>` : isTeacherAcc() ? `<button data-go="teach">Teacher space</button>` : `<button data-go="teach">Teach</button>`}<button data-go="plans" class="nav-premium">Plans</button></nav>
-      <div class="top-actions">${flagPair("sm")}${themeBtn}${fbUser ? `<a class="avatar" href="#/account" title="My account">${initials(fbUser.displayName || fbUser.email)}</a>` : `<a class="btn btn-ghost btn-sm auth-link" href="#/login">Log in</a>`}
+      <div class="top-actions">${langSwitch()}<button class="btn btn-ghost btn-sm install-btn" data-install>Install app</button>${flagPair("sm")}${themeBtn}${fbUser ? `<a class="avatar" href="#/account" title="My account">${initials(fbUser.displayName || fbUser.email)}</a>` : `<a class="btn btn-ghost btn-sm auth-link" href="#/login">Log in</a>`}
         ${S.level ? `<a class="btn btn-dark btn-sm" href="#/dashboard">My dashboard ${ic("arrow", "sm arrow")}</a>` : route === "test" ? "" : `<a class="btn btn-primary btn-sm" href="#/test">Take the test ${ic("arrow", "sm arrow")}</a>`}
       </div>`;
     $("#footer").innerHTML = onHome ? `<footer class="site-footer"><div class="wrap">
@@ -1160,7 +1162,8 @@ function viewResult() {
           Strongest skill: <b>${SKILL_NAMES[sorted[0][0]]}</b> · To work on: <b>${SKILL_NAMES[sorted[sorted.length - 1][0]]}</b>.</p>
           <div class="row" style="margin-top:16px">
             <button class="btn btn-primary btn-lg" id="go">Start improving: ${modOf(improvementOrder()[0]).name} ${ic("arrow", "arrow")}</button>
-            <a class="btn btn-ghost btn-lg" href="#/book/${L.id}" id="goBook">Read my free ${L.id} book</a>
+            <a class="btn btn-ghost btn-lg" href="#/book/${L.id}" id="goBook">Read my ${L.id} book</a>
+            <button class="btn btn-ghost btn-lg" id="certBtn">${ic("trophy", "sm")} My certificate</button>
           </div>
           ${planRank() >= 2 ? `<p class="small muted" style="margin:12px 0 0">Your ${L.id} course is now open. We start with your weakest skill.</p>`
             : `<div class="plan-upsell"><b>Want to prepare for the exam at level ${L.id}?</b><span>Upgrade to IELTS preparation to open your ${L.id} course: 72 corrected exercises, your study book and a 7-day plan.</span><a class="btn btn-primary btn-sm" href="#/plans">Upgrade ${ic("arrow", "sm arrow")}</a></div>`}
@@ -1200,6 +1203,7 @@ function viewResult() {
       </div>
     </div></div>`;
   const pick = id => { S.level = id; save(); confetti(); location.hash = "#/dashboard"; };
+  $("#certBtn").onclick = () => openCertificate(P, L);
   $("#go").onclick = () => { S.level = L.id; save(); const m = nextToImprove(); location.hash = `#/${m.route}/${firstTodo(m.key)}`; };
   $("#goBook").onclick = () => { S.level = L.id; save(); };
   $$("[data-pick]").forEach(b => b.onclick = () => pick(b.dataset.pick));
@@ -2419,38 +2423,78 @@ const contactButtons = (subject, body) => {
 };
 
 // Paiement SofizPay : l'élève est envoyé vers la page CIB / Edahabia de SofizPay (même appel que makeCIBTransaction du kit officiel)
-function openPayForm(plan) {
-  const m = openModal(`<div class="modal-head" style="--img:url('${photo("grad", 900)}')"><span class="eyebrow">Secure payment · SofizPay</span><h2>${esc(plan.name)} · ${money(plan.price)}</h2><p>SofizPay asks for these details to create your CIB or Edahabia card payment. You enter your card details on SofizPay's page, never on IELTS Pro.</p></div>
+// offer = { kind: "plan"|"live"|"teacher", value, name, price }
+function openPayForm(offer) {
+  if (!PROFILE) { toast("Log in first"); location.hash = "#/login"; return; }
+  let promo = null;
+  const m = openModal(`<div class="modal-head" style="--img:url('${photo("grad", 900)}')"><span class="eyebrow">Secure payment · SofizPay</span><h2>${esc(offer.name)}</h2><p>Pay by CIB or Edahabia card on SofizPay's page. Your plan is activated automatically as soon as the payment is confirmed.</p></div>
     <form class="modal-body pay-form" id="payForm" autocomplete="on">
-      <label>Full name<input name="full_name" required minlength="3" autocomplete="name" placeholder="First name and last name" value="${esc((fbUser && fbUser.displayName) || "")}"></label>
+      <div class="pay-total"><span>Total</span><b id="payAmount">${money(offer.price)}</b><s id="payOld" hidden>${money(offer.price)}</s></div>
+      <div class="promo-row"><input id="promoIn" placeholder="Promo code (optional)" maxlength="20" aria-label="Promo code"><button type="button" class="btn btn-ghost btn-sm" id="promoBtn">Apply</button></div>
+      <p class="small" id="promoMsg"></p>
+      <label>Full name<input name="full_name" required minlength="3" autocomplete="name" placeholder="First name and last name" value="${esc(PROFILE.name || "")}"></label>
       <label>Phone<input name="phone" required type="tel" autocomplete="tel" placeholder="+213 5XX XX XX XX" pattern="[+0-9 ().\-]{9,22}" title="Your phone number, for example +213 555 12 34 56 or 0555 12 34 56"></label>
-      <label>Email<input name="email" required type="email" autocomplete="email" placeholder="you@example.com" value="${esc((fbUser && fbUser.email) || "")}"></label>
-      <p class="small muted">After paying, you come back here. Send your receipt and you receive your activation code.</p>
-      <div class="row"><button class="btn btn-primary btn-lg" type="submit">Pay ${money(plan.price)} ${ic("arrow", "arrow")}</button><span class="pm-cards"><span>CIB</span><span>Edahabia</span></span></div>
+      <label>Email<input name="email" required type="email" autocomplete="email" placeholder="you@example.com" value="${esc(PROFILE.email || "")}"></label>
+      <div class="row"><button class="btn btn-primary btn-lg" type="submit" id="payGo">Pay now ${ic("arrow", "arrow")}</button><span class="pm-cards"><span>CIB</span><span>Edahabia</span></span></div>
+      <p class="small" id="payMsg"></p>
     </form>`);
-  $("#payForm", m).onsubmit = e => {
-    e.preventDefault();
-    const f = new FormData(e.target);
-    S.payStarted = { plan: plan.id, date: new Date().toISOString() }; save();
-    if (!PC.sofizpayAccount && PC.sofizpayLink) { location.href = PC.sofizpayLink; return; }
-    const params = new URLSearchParams({
-      account: PC.sofizpayAccount, amount: String(plan.price),
-      full_name: f.get("full_name").trim(), phone: f.get("phone").replace(/\s+/g, ""), email: f.get("email").trim(),
-      memo: "IELTS Pro " + plan.name, return_url: SITE_URL + "#/plans/paid", redirect: "yes"
-    });
-    location.href = `${PC.sofizpayEndpoint}?${params.toString()}`;
+  $("#promoBtn", m).onclick = async () => {
+    const code = $("#promoIn").value.trim(), msg = $("#promoMsg");
+    if (!code) return;
+    try {
+      const r = await api("checkPromo", { code });
+      promo = r.code;
+      $("#payAmount").textContent = money(Math.round(offer.price * (100 - r.percent) / 100)); $("#payOld").hidden = false;
+      msg.textContent = `✓ −${r.percent} % applied`; msg.className = "small ok-txt";
+    } catch (e) { promo = null; $("#payAmount").textContent = money(offer.price); $("#payOld").hidden = true; msg.textContent = e.message; msg.className = "small pm-err"; }
   };
+  $("#payForm", m).onsubmit = async e => {
+    e.preventDefault();
+    const f = new FormData(e.target), btn = $("#payGo"), msg = $("#payMsg");
+    btn.disabled = true; msg.textContent = "Preparing your payment…"; msg.className = "small";
+    try {
+      const o = await api("createOrder", { kind: offer.kind, value: String(offer.value), promo });
+      S.pendingOrder = { ref: o.ref, name: offer.name, amount: o.amount, at: Date.now() }; save();
+      const params = new URLSearchParams({
+        account: o.account, amount: String(o.amount),
+        full_name: f.get("full_name").trim(), phone: f.get("phone").replace(/\s+/g, ""), email: f.get("email").trim(),
+        memo: o.memo, return_url: o.returnUrl, redirect: "yes"
+      });
+      location.href = `${PC.sofizpayEndpoint}?${params.toString()}`;
+    } catch (err) { msg.textContent = err.message; msg.className = "small pm-err"; btn.disabled = false; }
+  };
+}
+// Vérifie une commande en attente (retour de SofizPay ou paiement fait sur un autre onglet)
+function watchOrder(ref, box) {
+  let tries = 0, stopped = false;
+  onLeave(() => { stopped = true; });
+  const tick = async () => {
+    if (stopped) return;
+    tries++;
+    try {
+      const d = await api("checkOrder", { ref });
+      if (d.order.status === "paid") {
+        setProfile(d.profile); S.pendingOrder = null; save(); confetti();
+        if (box) box.innerHTML = `<b>✓ Payment confirmed — your purchase is active!</b><span>${d.order.kind === "live" ? `<a href="#/live">Book your live class →</a>` : d.order.kind === "teacher" ? `<a href="#/teach">Open my teacher space →</a>` : `<a href="${S.level ? "#/dashboard" : "#/test"}">Continue →</a>`}</span>`;
+        toast("Payment confirmed!"); updateTop(); return;
+      }
+    } catch { }
+    if (tries < 24) setTimeout(tick, 10000);
+    else if (box) box.innerHTML = `<b>We have not received the confirmation yet.</b><span>If you paid, send your receipt (step 2): we activate your purchase by hand. Reference: <code>${esc(ref)}</code></span>`;
+  };
+  tick();
 }
 
 // Page des offres : affichée après la création du compte, avant le test
 function viewPlans(p) {
   const rank = planRank(), cur = PROFILE && planOf(PROFILE.plan);
   const canPay = !!(PC.sofizpayAccount || PC.sofizpayLink);
-  const backFromPay = p === "paid";
+  const payRet = /^paid-(paid|pending)-([A-Z0-9]+)$/.exec(p || "");
+  const backFromPay = !!payRet || p === "paid";
   const pending = S.payStarted && offerOf(S.payStarted.plan);
   const name = fbUser ? (fbUser.displayName || "").split(" ")[0] : "";
   app.innerHTML = `<div class="${S.level ? "" : "wrap"}" style="${S.level ? "" : "padding-top:30px;padding-bottom:60px"}">
-    ${backFromPay ? `<div class="pay-back fade-in"><b>Thank you! Your payment was sent to SofizPay.</b><span>Send your receipt (step 2) to receive your activation code, then enter it in step 3.</span></div>` : ""}
+    ${backFromPay ? `<div class="pay-back fade-in" id="payStatus">${payRet && payRet[1] === "paid" ? `<b>✓ Payment confirmed — your purchase is active!</b><span><a href="${S.level ? "#/dashboard" : "#/test"}">Continue →</a></span>` : `<b>Checking your payment…</b><span>This takes a few seconds after SofizPay confirms it. Keep this page open.</span>`}</div>` : ""}
     <section class="plans-head fade-in">
       <span class="eyebrow">${name ? `Welcome, ${esc(name)}` : "Choose your plan"}</span>
       <h1 class="display">What do you want to do?</h1>
@@ -2498,11 +2542,18 @@ function viewPlans(p) {
       ${PROFILE && PROFILE.live_credits ? `<p class="plan-current" style="display:flex">${ic("check", "sm")} You have <b>${PROFILE.live_credits}</b> live session(s) left · <a href="#/live">Book or join a class →</a></p>` : ""}
     </section>
 
+    <section class="school-offer">
+      <div><span class="eyebrow">Language schools</span><h2 class="h2-sec">IELTS Pro for your school</h2>
+        <p class="muted">Buy accounts for a whole class (from 10 students) at a group price. Your students join with one school code, and you follow their level, scores and weekly work from your school space.</p></div>
+      <div class="school-facts"><div><b>−25 %</b><span>from 10 students</span></div><div><b>1</b><span>code for the whole class</span></div><div><b>Live</b><span>progress of each student</span></div></div>
+      <div class="row">${contactButtons("IELTS Pro — school offer", "Hello, we are a language school and we are interested in IELTS Pro accounts for our students. Number of students: ")}</div>
+    </section>
+
     <section class="pm-steps">
       <h2 class="h2-sec">How it works</h2>
       <ol>
-        <li><span class="pm-n">01</span><div><b>Choose a plan and pay with SofizPay</b><p>Pay by CIB or Edahabia card. The payment page is run by SofizPay: IELTS Pro never sees your card details.</p></div></li>
-        <li><span class="pm-n">02</span><div><b>Send your payment receipt</b><p>Send a screenshot of your receipt${pending ? ` for <b>${esc(pending.name)}</b>` : ""}. We reply with your personal activation code.</p><div class="row">${contactButtons("IELTS Pro — payment receipt", `Hello, I have paid for IELTS Pro (${pending ? pending.name : "plan"}). Here is my receipt (attached). My name: ${fbUser ? fbUser.displayName : ""} · ${fbUser ? fbUser.email : ""}`)}</div></div></li>
+        <li><span class="pm-n">01</span><div><b>Choose a plan and pay with SofizPay</b><p>Pay by CIB or Edahabia card. The payment page is run by SofizPay: IELTS Pro never sees your card details. <b>Your purchase is activated automatically</b> when the payment is confirmed.</p></div></li>
+        <li><span class="pm-n">02</span><div><b>Not activated after a few minutes?</b><p>Send a screenshot of your receipt${pending ? ` for <b>${esc(pending.name)}</b>` : ""}. We reply with your personal activation code.</p><div class="row">${contactButtons("IELTS Pro — payment receipt", `Hello, I have paid for IELTS Pro (${pending ? pending.name : "plan"}). Here is my receipt (attached). My name: ${fbUser ? fbUser.displayName : ""} · ${fbUser ? fbUser.email : ""}`)}</div></div></li>
         <li><span class="pm-n">03</span><div><b>Enter your activation code</b><p>The code unlocks your plan or your live classes. Then you take the placement test and go straight to the course for your level.</p>
           <form class="pm-code" id="codeForm" autocomplete="off"><input id="codeIn" placeholder="IELTS-XXXX-XXXX or LIVE-XXXX-XXXX" maxlength="20" aria-label="Activation code"><button class="btn btn-primary">Activate</button></form>
           <p class="small" id="codeMsg"></p></div></li>
@@ -2511,14 +2562,19 @@ function viewPlans(p) {
   </div>`;
   $$("[data-live]", app).forEach(b => b.onclick = () => {
     if (!fbUser) { toast("Create your account first"); location.hash = "#/signup"; return; }
-    openPayForm(offerOf(b.dataset.live));
+    const pk = offerOf(b.dataset.live); openPayForm({ kind: "live", value: pk.sessions, name: pk.name, price: pk.price });
   });
   if (p === "live") setTimeout(() => $("#live")?.scrollIntoView({ behavior: "smooth", block: "start" }), 300);
   $$("[data-plan]", app).forEach(b => b.onclick = () => {
     if (!fbUser) { toast("Create your account first"); location.hash = "#/signup"; return; }
-    openPayForm(planOf(b.dataset.plan));
+    const pl = planOf(b.dataset.plan); openPayForm({ kind: "plan", value: pl.id, name: pl.name, price: pl.price });
   });
-  if (backFromPay) setTimeout(() => $(".pm-steps")?.scrollIntoView({ behavior: "smooth", block: "start" }), 400);
+  if (payRet && payRet[1] === "paid") { refreshMe(); S.pendingOrder = null; save(); confetti(); }
+  else if (payRet && PROFILE) watchOrder(payRet[2], $("#payStatus"));
+  else if (S.pendingOrder && PROFILE && Date.now() - S.pendingOrder.at < 864e5) {
+    const box = document.createElement("div"); box.className = "pay-back"; box.innerHTML = `<b>Checking your last payment (${esc(S.pendingOrder.name)})…</b>`;
+    $(".plans-head").before(box); watchOrder(S.pendingOrder.ref, box);
+  }
   $("#codeForm").onsubmit = async e => {
     e.preventDefault();
     const code = $("#codeIn").value.trim().toUpperCase().replace(/\s+/g, "");
@@ -2531,13 +2587,14 @@ function viewPlans(p) {
       msg.textContent = "Wrong owner PIN."; msg.className = "small pm-err"; return;
     }
     if (!PROFILE) { toast("Log in first to use your code"); location.hash = "#/login"; return; }
-    if (!/^(IELTS|LIVE|TEACH)-[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(code)) { msg.textContent = "The code should look like IELTS-XXXX-XXXX, LIVE-XXXX-XXXX or TEACH-XXXX-XXXX."; msg.className = "small pm-err"; return; }
+    if (!/^(IELTS|LIVE|TEACH|SCHOOL)-[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(code)) { msg.textContent = "The code should look like IELTS-XXXX-XXXX, LIVE-XXXX-XXXX, TEACH-XXXX-XXXX or SCHOOL-XXXX-XXXX."; msg.className = "small pm-err"; return; }
     const btn = $("#codeForm button"); btn.disabled = true; msg.textContent = "Checking your code…"; msg.className = "small";
     try {
       const d = await api("redeem", { code });
       setProfile(d.profile); S.payStarted = null; save(); confetti();
       if (d.kind === "live") { toast(`${d.value} live session(s) added!`); location.hash = "#/live"; }
       else if (d.kind === "teacher") { toast(`Teacher subscription active for ${d.value} month(s)!`); location.hash = "#/teach"; }
+      else if (d.kind === "school") { toast(`Welcome to ${d.school}! Your plan is active.`); location.hash = S.level ? "#/dashboard" : "#/test"; }
       else { toast(`${planOf(d.value).name} activated!`); location.hash = S.level ? (planRank() >= 2 ? "#/dashboard" : "#/result") : "#/test"; }
     } catch (err) { msg.textContent = err.message; msg.className = "small pm-err"; btn.disabled = false; }
   };
@@ -2631,6 +2688,7 @@ function bookingCard(b, asTeacher) {
     <div class="sess-actions">
       <a class="btn ${open ? "btn-primary" : "btn-dark"} btn-sm" href="${LC.roomBase + b.room}" target="_blank" rel="noopener">${ic("play", "sm")} ${open ? "Join the class now" : "Open the class room"}</a>
       ${asTeacher ? `<button class="btn btn-ghost btn-sm" data-done="${b.id}">Mark as done</button>` : ""}
+      <a class="btn btn-ghost btn-sm" href="#/messages/${asTeacher ? b.student_id : b.teacher_id}">Message</a>
       <button class="link-btn" data-cancel="${b.id}">Cancel</button>
     </div>
   </article>`;
@@ -2667,9 +2725,10 @@ function viewLive(p) {
     try { [T, B] = await Promise.all([api("teachers"), api("myBookings")]); }
     catch (e) { body.innerHTML = `<p class="pm-err" style="margin-top:30px">${esc(e.message)}</p>`; return; }
     const now = Date.now();
+    B.bookings = B.bookings || [];
     const upcoming = B.bookings.filter(b => b.status === "booked" && bkStart(b).getTime() + LC.minutes * 60000 > now);
     const past = B.bookings.filter(b => b.status === "done" || (b.status === "booked" && bkStart(b).getTime() + LC.minutes * 60000 <= now));
-    const teachers = T.teachers;
+    const teachers = T.teachers || [];
     const topics = ["Speaking practice", "Writing review", "Listening & Reading strategies", "Full mock test", "My questions"];
     body.innerHTML = `
       ${upcoming.length ? `<section class="live-block"><h2 class="h2-sec">My next classes</h2><div class="sess-list">${upcoming.map(b => bookingCard(b, false)).join("")}</div></section>` : ""}
@@ -2680,7 +2739,7 @@ function viewLive(p) {
         : `<form id="bookForm">
           <p class="small muted" style="margin:0">1. Choose your teacher</p>
           <div class="teacher-row">${teachers.map((t, i) => `<label class="teacher-pick"><input type="radio" name="teacher" value="${t.id}" ${i === 0 ? "checked" : ""}><span>
-            ${t.photo ? `<img src="${esc(t.photo)}" alt="" referrerpolicy="no-referrer">` : `<i>${initials(t.name)}</i>`}<b>${esc(t.name)}</b><small>${esc((t.bio || "IELTS teacher").slice(0, 110))}</small></span></label>`).join("")}</div>
+            ${t.photo ? `<img src="${esc(t.photo)}" alt="" referrerpolicy="no-referrer">` : `<i>${initials(t.name)}</i>`}<b>${esc(t.name)} ${t.reviews ? `<em class="stars-sm">★ ${t.rating.toFixed(1)} <small>(${t.reviews})</small></em>` : `<em class="stars-sm new">New</em>`}</b><small>${esc((t.bio || "IELTS teacher").slice(0, 110))}</small>${t.lastReviews && t.lastReviews[0] ? `<q>${esc(t.lastReviews[0].comment.slice(0, 90))}</q>` : ""}</span></label>`).join("")}</div>
           <p class="small muted">2. Choose a day</p>
           <div class="chip-row" id="dayRow"></div>
           <p class="small muted">3. Choose a time</p>
@@ -2691,7 +2750,8 @@ function viewLive(p) {
           <p class="small" id="bookMsg"></p>
         </form>`}
       </section>
-      ${past.length ? `<section class="live-block"><h2 class="h2-sec">Past classes</h2><ul class="past-list">${past.map(b => `<li>${esc(bkWhen(b))} · ${esc(b.topic)} · with ${esc(b.teacher.name)}</li>`).join("")}</ul></section>` : ""}`;
+      ${past.length ? `<section class="live-block"><h2 class="h2-sec">Past classes</h2><ul class="past-list">${past.map(b => `<li><span>${esc(bkWhen(b))} · ${esc(b.topic)} · with ${esc(b.teacher.name)}</span>${b.my_stars ? `<span class="stars-sm">${"★".repeat(b.my_stars)}${"☆".repeat(5 - b.my_stars)}</span>` : `<button class="btn btn-ghost btn-sm" data-rate="${b.id}" data-tname="${esc(b.teacher.name)}">Rate this class</button>`} <a class="link-btn" href="#/messages/${b.teacher_id}">Message</a></li>`).join("")}</ul></section>` : ""}`;
+    $$("[data-rate]").forEach(btn => btn.onclick = () => openRating(btn.dataset.rate, btn.dataset.tname, load));
     bindBookingActions(load);
     const bf = $("#bookForm"); if (!bf) return;
     const teacherOf = () => teachers.find(t => t.id === $("input[name=teacher]:checked").value);
@@ -2725,7 +2785,8 @@ function reqCard(r, asTeacher) {
   return `<article class="req-card ${r.status}">
     <div class="req-top"><span class="tag">${esc(r.kind)}</span><b>${esc((r.task || "Answer").slice(0, 90))}</b><div class="spacer"></div>
       ${r.status === "answered" ? `<span class="req-band">Band ${r.band != null ? Number(r.band).toFixed(1) : "—"}</span>` : `<span class="muted small">${asTeacher ? esc(r.student_name) + (r.student_level ? " · " + esc(r.student_level) : "") + " · " : "Waiting for a teacher · "}sent ${new Date(r.created_at).toLocaleDateString("en-GB")}</span>`}</div>
-    ${asTeacher ? `<p class="req-text">${nl(r.content)}</p>` : `<details><summary>My answer</summary><p class="req-text">${nl(r.content)}</p></details>`}
+    ${r.audio_url ? `<audio controls preload="none" src="${esc(r.audio_url)}" style="width:100%"></audio>` : ""}
+    ${r.content ? (asTeacher ? `<p class="req-text">${nl(r.content)}</p>` : `<details><summary>My answer</summary><p class="req-text">${nl(r.content)}</p></details>`) : ""}
     ${r.status === "answered" ? `<div class="req-fb"><small>Feedback${r.teacher_name ? " from " + esc(r.teacher_name) : ""}</small><p>${nl(r.feedback)}</p></div>`
       : asTeacher ? `<form class="req-answer" data-req="${r.id}"><label>Your feedback (Task, Coherence, Vocabulary, Grammar)<textarea name="feedback" required minlength="20" style="min-height:140px"></textarea></label>
         <div class="row"><label class="band-in">Band <input name="band" type="number" min="0" max="9" step="0.5" required></label><button class="btn btn-primary btn-sm">Send the correction</button></div></form>` : ""}
@@ -2803,16 +2864,48 @@ function viewTeacher(p) {
     $("#tTask").onchange = upd; $("#tText").oninput = () => { S.teacherDraft = { ...(S.teacherDraft || {}), text: $("#tText").value }; save(); upd(); };
     upd();
   } else {
-    const subject = `IELTS Pro — Speaking feedback (${L.id})`;
-    const body = `${ref}\nLevel: ${L.id}\nCue card: \n\nMy recording is attached.`;
     z.innerHTML = `<div class="grid grid-2" style="align-items:start">
-      <div class="card"><h3>1. Record your answer</h3>
-        <ol class="method-list"><li>Open the Speaking page and choose a cue card.</li><li>Prepare for 1 minute, then speak for 2 minutes.</li><li>Click <b>Download my recording</b> under your result.</li></ol>
-        <a class="btn btn-ghost" href="#/speaking/0" style="margin-top:12px">Open Speaking practice ${ic("arrow", "sm arrow")}</a></div>
-      <div class="card"><h3>2. Send it to the teacher</h3>
-        <p class="muted">The message opens with your level and reference. <b>Attach the recording file</b> you downloaded, then send.</p>
-        <div class="row" id="sSend">${contactButtons(subject, body)}</div></div></div>`;
-    $$("#sSend a").forEach(a => a.onclick = () => { S.teacherSent = S.teacherSent || []; S.teacherSent.push({ kind: "Speaking", title: "Recording", date: new Date().toISOString() }); save(); });
+      <div class="card"><h3>1. Choose a cue card</h3>
+        <select id="sCard" style="width:100%;margin:8px 0 14px">${L.speaking.cards.map((c, i) => `<option value="${i}">${esc((c.topic || c.title || c.q || "Cue card " + (i + 1)).toString().slice(0, 80))}</option>`).join("")}</select>
+        <p class="book-prompt" id="sPrompt"></p>
+        <p class="muted small">Prepare for 1 minute, then speak for up to 2 minutes.</p></div>
+      <div class="card"><h3>2. Record your answer and send it</h3>
+        <div class="rec-box"><button class="btn btn-primary" id="recBtn">🎙️ Start recording</button><span class="rec-time" id="recTime">0:00 / 2:00</span></div>
+        <audio id="recPlay" controls hidden style="width:100%;margin-top:12px"></audio>
+        <p class="small muted" style="margin-top:10px">Or choose an audio file: <input type="file" id="recFile" accept="audio/*"></p>
+        <button class="btn btn-dark" id="recSend" disabled style="margin-top:12px">Send to the teacher ${ic("arrow", "sm arrow")}</button>
+        <p class="small" id="recMsg"></p></div></div>`;
+    const card = () => L.speaking.cards[+$("#sCard").value];
+    const showCard = () => { const c = card(); $("#sPrompt").textContent = [c.topic || c.title || c.q, ...(c.points || c.bullets || [])].filter(Boolean).join(" · "); };
+    $("#sCard").onchange = showCard; showCard();
+    let blob = null, ext = "webm", rec = null, chunks = [], t0 = 0, iv = 0;
+    const setBlob = (b, e) => { blob = b; ext = e; const a = $("#recPlay"); a.src = URL.createObjectURL(b); a.hidden = false; $("#recSend").disabled = false; };
+    const stopRec = () => { if (rec && rec.state !== "inactive") rec.stop(); clearInterval(iv); };
+    onLeave(stopRec);
+    $("#recBtn").onclick = async () => {
+      if (rec && rec.state === "recording") { stopRec(); return; }
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        rec = new MediaRecorder(stream); chunks = [];
+        rec.ondataavailable = e => chunks.push(e.data);
+        rec.onstop = () => { stream.getTracks().forEach(t => t.stop()); const type = rec.mimeType || "audio/webm"; setBlob(new Blob(chunks, { type }), type.includes("ogg") ? "ogg" : type.includes("mp4") ? "m4a" : "webm"); $("#recBtn").textContent = "🎙️ Record again"; };
+        rec.start(); t0 = Date.now(); $("#recBtn").textContent = "■ Stop";
+        iv = setInterval(() => { const sec = (Date.now() - t0) / 1000; $("#recTime").textContent = `${fmt(sec)} / 2:00`; if (sec >= 120) stopRec(); }, 250);
+      } catch { const m = $("#recMsg"); m.textContent = "Your browser blocked the microphone. Allow it, or choose an audio file."; m.className = "small pm-err"; }
+    };
+    $("#recFile").onchange = e => { const f = e.target.files[0]; if (!f) return; if (f.size > 15e6) { toast("The file is too big (15 MB max)"); return; } setBlob(f, (f.name.split(".").pop() || "webm").toLowerCase()); };
+    $("#recSend").onclick = async () => {
+      if (!PROFILE) { toast("Log in first"); location.hash = "#/login"; return; }
+      const b = $("#recSend"), msg = $("#recMsg"); b.disabled = true; msg.textContent = "Uploading your recording…"; msg.className = "small";
+      try {
+        const u = await api("uploadUrl", { ext });
+        const r = await fetch(u.url, { method: "PUT", headers: { "content-type": blob.type || "audio/webm" }, body: blob });
+        if (!r.ok) throw new Error("The upload failed. Try again.");
+        const c = card();
+        await api("requestCorrection", { kind: "speaking", task: "Speaking Part 2 — " + (c.topic || c.title || c.q || ""), content: "", audioPath: u.path });
+        msg.textContent = "✓ Sent! The teacher's feedback will appear below."; msg.className = "small ok-txt"; loadReq();
+      } catch (err) { msg.textContent = err.message; msg.className = "small pm-err"; b.disabled = false; }
+    };
   }
 }
 
@@ -2893,7 +2986,7 @@ function initGoogle() {
 async function onGoogleCredential(resp) {
   const m = $("#authMsg"); if (m) { m.textContent = "Signing you in…"; m.className = "auth-msg"; }
   try {
-    const d = await api("login", { idToken: resp.credential, as: S.signupAs || "student" });
+    const d = await api("login", { idToken: resp.credential, as: S.signupAs || "student", ref: S.refCode || "" });
     lsSet(SESSION_KEY, d.session); setProfile(d.profile);
     if (!mergeServerState(d.state, d.state_updated)) save(); // envoie la progression de cet appareil
     toast(`Welcome, ${(PROFILE.name || "").split(" ")[0] || "back"}!`);
@@ -3017,8 +3110,20 @@ function viewAccount() {
       <div class="card acc-stat"><small>Live sessions left</small><b>${PROFILE.live_credits || 0}</b><a href="#/live">Live classes →</a></div>
     </div>
     <p class="small muted" style="margin-top:16px">Your level, scores and progress are saved in your account and loaded on every device where you log in.${lastSync ? " Last saved " + lastSync.toLocaleTimeString("en-GB") + "." : ""}</p>
+    <div class="grid grid-2 acc-tools">
+      <div class="card"><h3>📱 IELTS Pro on your phone</h3><p class="muted small">Install the app on your home screen: it opens in one tap, full screen.</p><button class="btn btn-dark btn-sm" data-install>Install the app</button></div>
+      <div class="card"><h3>🔔 Class reminders</h3><p class="muted small">Get a notification 15 minutes before each live class (while IELTS Pro is open), and a reminder bar on the site 24 h before.</p><button class="btn btn-dark btn-sm" id="notifBtn">${"Notification" in window && Notification.permission === "granted" ? "Reminders are on ✓" : "Turn on reminders"}</button></div>
+    </div>
+    <div id="refBox"></div><div id="schoolBox"></div>
   </div>`;
   $("#logout").onclick = logout;
+  fillReferral($("#refBox")); fillSchool($("#schoolBox"));
+  $("#notifBtn").onclick = async () => {
+    if (!("Notification" in window)) { toast("Your browser does not support notifications"); return; }
+    const r = await Notification.requestPermission();
+    $("#notifBtn").textContent = r === "granted" ? "Reminders are on ✓" : "Turn on reminders";
+    if (r === "granted") { toast("Reminders are on"); checkReminders(); } else toast("Notifications are blocked in your browser settings");
+  };
 }
 
 
@@ -3079,7 +3184,7 @@ function viewTeach() {
     ${camTestHTML()}
   </div>`;
   bindCamTest();
-  $$("[data-tplan]").forEach(b => b.onclick = () => { const tp = TEACHER_PLANS.find(x => String(x.months) === b.dataset.tplan); openPayForm({ id: "teacher" + tp.months, name: "Teacher subscription · " + tp.name, price: tp.price }); });
+  $$("[data-tplan]").forEach(b => b.onclick = () => { const tp = TEACHER_PLANS.find(x => String(x.months) === b.dataset.tplan); openPayForm({ kind: "teacher", value: tp.months, name: "Teacher subscription · " + tp.name, price: tp.price }); });
   const tc = $("#tCode");
   if (tc) tc.onsubmit = async e => {
     e.preventDefault(); const msg = $("#tCodeMsg");
@@ -3133,12 +3238,12 @@ const CODE_TYPES = [
 ];
 function viewAdmin(p) {
   if (!isAdmin()) { app.innerHTML = `<div class="wrap" style="padding-top:40px"><div class="pm-lock"><h2>Admin only</h2><p class="muted">Log in with the administrator's Google account.</p><a class="btn btn-primary" href="#/login">Log in</a></div></div>`; return; }
-  const tab = ["users", "codes", "classes", "log", "security"].includes(p) ? p : "users";
+  const tab = ["sales", "users", "orders", "promos", "schools", "codes", "classes", "log", "security"].includes(p) ? p : "sales";
   app.innerHTML = `<div class="${S.level ? "" : "wrap"}" style="${S.level ? "" : "padding-top:30px;padding-bottom:60px"}">
     <section class="admin-head fade-in"><div><span class="eyebrow">Solvarynlabs · administration</span><h1>Admin dashboard</h1><p class="muted">Students, teachers, payments, codes and classes in one place.</p></div>
       <div class="row"><a class="btn btn-ghost btn-sm" href="#/teach">Teacher space</a><a class="btn btn-ghost btn-sm" href="#/dashboard">Student view</a></div></section>
     <div class="admin-stats" id="aStats"><p class="muted">Loading…</p></div>
-    <div class="tabs admin-tabs">${[["users", "Users"], ["codes", "Activation codes"], ["classes", "Live classes"], ["log", "Payments log"], ["security", "Password"]].map(([k, l]) => `<button data-atab="${k}" class="${tab === k ? "active" : ""}">${l}</button>`).join("")}</div>
+    <div class="tabs admin-tabs">${[["sales", "Sales"], ["users", "Users"], ["orders", "Payments"], ["promos", "Promo codes"], ["schools", "Schools"], ["codes", "Activation codes"], ["classes", "Live classes"], ["log", "Log"], ["security", "Password"]].map(([k, l]) => `<button data-atab="${k}" class="${tab === k ? "active" : ""}">${l}</button>`).join("")}</div>
     <div id="aBody"><p class="muted">Loading…</p></div>
   </div>`;
   $$("[data-atab]").forEach(b => b.onclick = () => { location.hash = "#/admin/" + b.dataset.atab; });
@@ -3154,6 +3259,10 @@ function viewAdmin(p) {
   else if (tab === "codes") adminCodes(body);
   else if (tab === "classes") adminClasses(body);
   else if (tab === "security") adminSecurity(body);
+  else if (tab === "sales") adminSales(body);
+  else if (tab === "orders") adminOrdersTab(body);
+  else if (tab === "promos") adminPromosTab(body);
+  else if (tab === "schools") adminSchools(body);
   else adminLog(body);
 }
 function adminUsers(body, search = "", roleF = "") {
@@ -3254,12 +3363,298 @@ function adminLog(body) {
   }).catch(e => { body.innerHTML = `<p class="pm-err">${esc(e.message)}</p>`; });
 }
 
+
+/* =========================================================
+   NOUVELLES FONCTIONS : avis, certificat, classement, parrainage,
+   messagerie, école, ventes, promos, commandes, application, rappels, langues
+   ========================================================= */
+// ---------- 6. Avis ----------
+function openRating(bookingId, tname, done) {
+  const m = openModal(`<div class="modal-head" style="--img:url('${photo("speaking", 900)}')"><span class="eyebrow">Your opinion</span><h2>How was your class with ${esc(tname)}?</h2><p>Your stars help other students choose their teacher.</p></div>
+    <form class="modal-body rate-form" id="rateForm"><div class="stars-in" role="radiogroup" aria-label="Stars">${[5, 4, 3, 2, 1].map(n => `<label><input type="radio" name="stars" value="${n}" ${n === 5 ? "checked" : ""}><span aria-label="${n} stars">★</span></label>`).join("")}</div>
+      <label>Comment (optional)<textarea name="comment" maxlength="600" style="min-height:90px" placeholder="What did you like? What can be better?"></textarea></label>
+      <div class="row"><button class="btn btn-primary">Send my review</button><span class="small" id="rateMsg"></span></div></form>`);
+  $("#rateForm", m).onsubmit = async e => {
+    e.preventDefault(); const f = new FormData(e.target);
+    try { await api("review", { bookingId, stars: f.get("stars"), comment: f.get("comment") }); closeModal(); toast("Thank you for your review!"); done && done(); }
+    catch (err) { $("#rateMsg").textContent = err.message; $("#rateMsg").className = "small pm-err"; }
+  };
+}
+
+// ---------- 7. Certificat (PNG + PDF) ----------
+function drawCertificate(c, P, L, name) {
+  const x = c.getContext("2d"), W = 1600, H = 1131, F = "Barlow, Arial, sans-serif";
+  x.fillStyle = "#fff"; x.fillRect(0, 0, W, H);
+  x.fillStyle = "#e4002b"; x.fillRect(0, 0, W, 26); x.fillRect(0, H - 26, W, 26);
+  x.strokeStyle = "#141414"; x.lineWidth = 3; x.strokeRect(60, 70, W - 120, H - 140);
+  x.strokeStyle = "#e4002b"; x.lineWidth = 1.5; x.strokeRect(78, 88, W - 156, H - 176);
+  x.fillStyle = "#e4002b"; x.beginPath(); x.moveTo(130, 140); x.lineTo(214, 140); x.lineTo(214, 209); x.lineTo(199, 224); x.lineTo(130, 224); x.fill();
+  x.fillStyle = "#fff"; x.font = `900 62px ${F}`; x.textAlign = "center"; x.fillText("i", 172, 205);
+  x.textAlign = "left"; x.fillStyle = "#141414"; x.font = `800 52px ${F}`; x.fillText("IELTS", 236, 200); const w = x.measureText("IELTS").width; x.fillStyle = "#e4002b"; x.fillText("Pro", 236 + w, 200);
+  x.textAlign = "center"; x.fillStyle = "#e4002b"; x.font = `800 26px ${F}`; x.fillText("CERTIFICATE OF LEVEL", W / 2, 330);
+  x.fillStyle = "#141414"; x.font = `600 30px ${F}`; x.fillText("This certifies that", W / 2, 400);
+  x.font = `900 92px ${F}`; x.fillText(name, W / 2, 510, W - 300);
+  x.fillStyle = "#e4002b"; x.fillRect(W / 2 - 160, 540, 320, 5);
+  x.fillStyle = "#141414"; x.font = `600 30px ${F}`; x.fillText(`completed the IELTS Pro ${P.test ? "full placement test " + P.test : "placement test"} with an estimated band of`, W / 2, 610);
+  x.font = `900 150px ${F}`; x.fillStyle = "#e4002b"; x.fillText(P.band.toFixed(1), W / 2, 780);
+  x.fillStyle = "#141414"; x.font = `800 40px ${F}`; x.fillText(`Level ${L.id} — ${L.name}`, W / 2, 845);
+  const sk = Object.entries(P.skills || {}).map(([k, v]) => `${SKILL_NAMES[k] || k} ${Number(v.band).toFixed(1)}`).join("   ·   ");
+  x.fillStyle = "#555"; x.font = `600 24px ${F}`; x.fillText(sk, W / 2, 900, W - 260);
+  x.textAlign = "left"; x.fillStyle = "#141414"; x.font = `700 24px ${F}`; x.fillText("Date: " + new Date(P.date).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }), 140, 990);
+  x.textAlign = "right"; x.fillText("Solvarynlabs · Aïn Beïda", W - 140, 990);
+  x.textAlign = "center"; x.fillStyle = "#888"; x.font = `500 18px ${F}`; x.fillText("Estimated band from an IELTS Pro practice test — not an official IELTS result. " + SITE_URL.replace("https://", ""), W / 2, 1040);
+}
+function openCertificate(P, L) {
+  const m = openModal(`<div class="modal-head" style="--img:url('${photo("grad", 900)}')"><span class="eyebrow">Certificate</span><h2>Your level certificate</h2><p>Download it and share it with your friends and family.</p></div>
+    <div class="modal-body"><label class="cert-name">Name on the certificate<input id="certName" maxlength="60" value="${esc((PROFILE && PROFILE.name) || "")}" placeholder="Your full name"></label>
+      <canvas id="certCv" width="1600" height="1131" class="cert-cv"></canvas>
+      <div class="row" style="margin-top:14px"><button class="btn btn-primary" id="certPdf">Download PDF</button><button class="btn btn-ghost" id="certPng">Download image (PNG)</button></div></div>`, "modal-wide");
+  const cv = $("#certCv", m), draw = () => drawCertificate(cv, P, L, $("#certName").value.trim() || "IELTS Pro student");
+  document.fonts.ready.then(draw); $("#certName").oninput = draw;
+  const file = () => "ielts-pro-certificate-" + (($("#certName").value || "student").replace(/[^a-z0-9]+/gi, "-").toLowerCase());
+  $("#certPng").onclick = () => { const a = document.createElement("a"); a.download = file() + ".png"; a.href = cv.toDataURL("image/png"); a.click(); };
+  $("#certPdf").onclick = async () => {
+    try {
+      if (!window.jspdf) await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
+      const pdf = new window.jspdf.jsPDF({ orientation: "landscape", unit: "px", format: [1600, 1131] });
+      pdf.addImage(cv.toDataURL("image/jpeg", .95), "JPEG", 0, 0, 1600, 1131); pdf.save(file() + ".pdf");
+    } catch { toast("PDF is not available — download the image instead"); }
+  };
+}
+
+// ---------- 8. Classement + défi de la semaine ----------
+function weekDaysActive() { let n = 0; for (let i = 0; i < 7; i++) { const d = new Date(Date.now() - i * 864e5).toISOString().slice(0, 10); if ((S.activity || {})[d]) n++; } return n; }
+function viewRank() {
+  const days = weekDaysActive(), goal = 5;
+  app.innerHTML = `<div class="${S.level ? "" : "wrap"}" style="${S.level ? "" : "padding-top:30px;padding-bottom:60px"}">
+    ${pageHero("progress", "This week", "Weekly ranking", "Earn points with every exercise. The ranking starts again every 7 days.")}
+    <div class="grid grid-3 rank-cards">
+      <div class="card acc-stat"><small>Study streak</small><b>${(S.streak && S.streak.count) || 0} day(s)</b><span class="muted small">Study every day to keep it.</span></div>
+      <div class="card acc-stat"><small>Weekly challenge</small><b>${Math.min(days, goal)} / ${goal} days</b><div class="ph-bar" style="margin-top:6px"><i style="width:${Math.min(100, days / goal * 100)}%;animation:none"></i></div><span class="muted small">${days >= goal ? "Challenge complete! 🏆" : "Study 5 different days this week."}</span></div>
+      <div class="card acc-stat"><small>My rank</small><b id="myRank">…</b><span class="muted small" id="myXP"></span></div>
+    </div>
+    <section class="live-block"><h2 class="h2-sec">Top 20 this week</h2><div id="rankBody"><p class="muted">Loading…</p></div>
+      <label class="small rank-hide"><input type="checkbox" id="hideRank" ${S.hideRank ? "checked" : ""}> Hide my name from the ranking</label></section>
+  </div>`;
+  $("#hideRank").onchange = e => { S.hideRank = e.target.checked; save(); toast(S.hideRank ? "You are hidden from the ranking" : "You appear in the ranking"); };
+  api("leaderboard").then(d => {
+    $("#myRank").textContent = d.me ? "#" + d.me.rank : "—"; $("#myXP").textContent = d.me ? `${d.me.xp} points this week · ${d.players} players` : "Do an exercise to enter the ranking.";
+    $("#rankBody").innerHTML = d.top.length ? `<ol class="rank-list">${d.top.map(r => `<li class="${r.me ? "me" : ""} ${r.rank <= 3 ? "top" + r.rank : ""}"><span class="rk">${r.rank <= 3 ? ["🥇", "🥈", "🥉"][r.rank - 1] : r.rank}</span><b>${esc(r.name)}${r.me ? " (you)" : ""}</b><span class="muted small">${r.level ? "Level " + esc(r.level) : ""}${r.streak ? " · 🔥 " + r.streak : ""}</span><span class="rk-xp">${r.xp} pts</span></li>`).join("")}</ol>` : `<p class="muted">Nobody has points yet this week. Be the first!</p>`;
+  }).catch(e => { $("#rankBody").innerHTML = `<p class="pm-err">${esc(e.message)}</p>`; });
+}
+
+// ---------- 9. Parrainage (section du compte) ----------
+async function fillReferral(box) {
+  try {
+    const d = await api("referrals");
+    const link = SITE_URL + "?ref=" + d.code;
+    const msg = `I prepare IELTS with IELTS Pro. Create your account with my link: ${link}`;
+    box.innerHTML = `<div class="ref-card"><div><span class="eyebrow">Invite your friends</span><h3>Get a free live class</h3><p class="muted">When a friend creates an account with your link and buys a plan, you get <b>1 free live session</b> with a teacher.</p></div>
+      <div class="ref-link"><input readonly value="${esc(link)}" aria-label="Your invitation link" id="refLink"><button class="btn btn-dark btn-sm" id="refCopy">Copy</button><a class="btn btn-primary btn-sm" href="https://wa.me/?text=${encodeURIComponent(msg)}" target="_blank" rel="noopener">Share on WhatsApp</a></div>
+      ${d.friends.length ? `<ul class="ref-friends">${d.friends.map(f => `<li><b>${esc(f.name)}</b><span class="st ${f.paid ? "st-ok" : "st-wait"}">${f.paid ? "bought · +1 session" : "signed up"}</span></li>`).join("")}</ul>` : `<p class="small muted">No friend invited yet.</p>`}</div>`;
+    $("#refCopy").onclick = async () => { try { await navigator.clipboard.writeText(link); toast("Link copied"); } catch { $("#refLink").select(); } };
+  } catch (e) { box.innerHTML = ""; }
+}
+async function fillSchool(box) {
+  try {
+    const { schools } = await api("mySchool");
+    if (!schools.length) return;
+    box.innerHTML = schools.map(sc => `<section class="live-block"><h2 class="h2-sec">My school · ${esc(sc.name)}</h2><p class="muted">${sc.members.length} / ${sc.seats} students · plan ${esc(planOf(sc.plan).name)}</p>
+      <div class="a-table-wrap"><table class="a-table"><thead><tr><th>Student</th><th>Level</th><th>Band</th><th>Full tests</th><th>Points this week</th><th>Last seen</th></tr></thead><tbody>
+      ${sc.members.map(m => `<tr><td><b>${esc(m.name)}</b><small>${esc(m.email)}</small></td><td>${m.summary && m.summary.level ? esc(m.summary.level) : "—"}</td><td>${m.summary && m.summary.band ? Number(m.summary.band).toFixed(1) : "—"}</td><td>${m.summary ? m.summary.fullTests : 0}</td><td>${m.weekXP}</td><td><small>${new Date(m.last_seen).toLocaleDateString("en-GB")}</small></td></tr>`).join("") || `<tr><td colspan="6" class="muted">No student yet. Give them your school code.</td></tr>`}
+      </tbody></table></div></section>`).join("");
+  } catch { }
+}
+
+// ---------- 14. Messagerie ----------
+function viewMessages(withId) {
+  app.innerHTML = `<div class="${S.level ? "" : "wrap"}" style="${S.level ? "" : "padding-top:30px;padding-bottom:60px"}">
+    <div class="chat-wrap"><aside class="chat-list" id="chatList"><p class="muted small" style="padding:14px">Loading…</p></aside>
+      <section class="chat-main" id="chatMain"><div class="chat-empty"><h3>Your messages</h3><p class="muted">Write to your teacher (or your students) before or after a class. Choose a conversation on the left.</p></div></section></div></div>`;
+  let poll = 0; onLeave(() => clearTimeout(poll));
+  const loadList = async () => {
+    try {
+      const { chats } = await api("chatList");
+      const box = $("#chatList"); if (!box) return;
+      box.innerHTML = chats.length ? chats.map(c => `<a class="chat-item ${c.id === withId ? "on" : ""}" href="#/messages/${c.id}">${c.photo ? `<img src="${esc(c.photo)}" alt="" referrerpolicy="no-referrer">` : `<i>${initials(c.name)}</i>`}<span><b>${esc(c.name)}</b><small>${c.last ? (c.last.fromMe ? "You: " : "") + esc(c.last.body.slice(0, 40)) : roleLabel(c.role)}</small></span>${c.unread ? `<em>${c.unread}</em>` : ""}</a>`).join("")
+        : `<p class="muted small" style="padding:14px">Book a live class first: you can then write to your teacher here.</p>`;
+    } catch (e) { $("#chatList").innerHTML = `<p class="pm-err small" style="padding:14px">${esc(e.message)}</p>`; }
+  };
+  const loadThread = async (scroll) => {
+    if (!withId) return;
+    try {
+      const d = await api("chatGet", { with: withId });
+      const main = $("#chatMain"); if (!main) return;
+      if (!$("#chatForm")) main.innerHTML = `<header class="chat-head"><b>${esc(d.with ? d.with.name : "")}</b><span class="muted small">${d.with ? roleLabel(d.with.role) : ""}</span></header><div class="chat-msgs" id="chatMsgs"></div>
+        <form class="chat-form" id="chatForm"><textarea id="chatIn" rows="2" maxlength="2000" placeholder="Write a message…" aria-label="Message"></textarea><button class="btn btn-primary">Send</button></form>`;
+      const box = $("#chatMsgs"), atBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 60;
+      box.innerHTML = d.messages.length ? d.messages.map(m => `<div class="msg ${m.fromMe ? "me" : ""}"><p>${esc(m.body).replace(/\n/g, "<br>")}</p><time>${new Date(m.at).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</time></div>`).join("") : `<p class="muted small" style="text-align:center">No message yet. Say hello 👋</p>`;
+      if (scroll || atBottom) box.scrollTop = box.scrollHeight;
+      const f = $("#chatForm");
+      if (!f.dataset.bound) {
+        f.dataset.bound = "1";
+        const send = async e => { e && e.preventDefault(); const t = $("#chatIn").value.trim(); if (!t) return; $("#chatIn").value = ""; try { await api("chatSend", { to: withId, body: t }); loadThread(true); loadList(); } catch (err) { toast(err.message); } };
+        f.onsubmit = send;
+        $("#chatIn").onkeydown = e => { if (e.key === "Enter" && !e.shiftKey) send(e); };
+      }
+    } catch (e) { $("#chatMain").innerHTML = `<div class="chat-empty"><p class="pm-err">${esc(e.message)}</p></div>`; }
+  };
+  const loop = async () => { await loadThread(false); poll = setTimeout(loop, 8000); };
+  loadList(); if (withId) { loadThread(true).then(() => { poll = setTimeout(loop, 8000); }); }
+}
+async function pollUnread() {
+  if (!PROFILE) return;
+  try { const { unread } = await api("unread"); if (unread !== window.__unread) { window.__unread = unread; updateTop(); } } catch { }
+  setTimeout(pollUnread, 60000);
+}
+
+// ---------- 3. Rappels de cours (sur le site + notification) ----------
+async function checkReminders() {
+  if (!PROFILE) return;
+  try {
+    const { bookings } = await api("myBookings");
+    const now = Date.now();
+    const soon = bookings.filter(b => b.status === "booked" && bkStart(b).getTime() > now - 10 * 60000 && bkStart(b).getTime() - now < 24 * 3600e3)
+      .sort((a, b) => bkStart(a) - bkStart(b))[0];
+    let bar = $("#classBar");
+    if (!soon) { if (bar) bar.remove(); return; }
+    const mins = Math.round((bkStart(soon).getTime() - now) / 60000);
+    if (!bar) { bar = document.createElement("div"); bar.id = "classBar"; document.body.appendChild(bar); }
+    bar.innerHTML = `<span>📅 ${mins > 0 ? `Your live class starts in <b>${mins > 60 ? Math.round(mins / 60) + " h" : mins + " min"}</b>` : "<b>Your live class is now</b>"} · ${esc(soon.slot)} · ${esc((soon.teacher && soon.teacher.name) || (soon.student && soon.student.name) || "")}</span>
+      <a class="btn btn-white btn-sm" href="${LC.roomBase + soon.room}" target="_blank" rel="noopener">${mins <= 15 ? "Join now" : "Open the room"}</a><button class="cb-x" aria-label="Hide">×</button>`;
+    $(".cb-x", bar).onclick = () => bar.remove();
+    // notification du navigateur 15 min avant, si l'élève l'a autorisée
+    if ("Notification" in window && Notification.permission === "granted" && mins > 15 && mins < 24 * 60) {
+      clearTimeout(window.__remT);
+      window.__remT = setTimeout(() => { try { new Notification("IELTS Pro · your class starts in 15 min", { body: soon.topic + " · " + soon.slot, icon: "assets/icon-192.png" }); } catch { } }, (mins - 15) * 60000);
+    }
+  } catch { }
+}
+
+// ---------- 4. Application installable ----------
+let installEvt = null;
+window.addEventListener("beforeinstallprompt", e => { e.preventDefault(); installEvt = e; document.body.classList.add("can-install"); });
+window.addEventListener("appinstalled", () => { installEvt = null; document.body.classList.remove("can-install"); toast("IELTS Pro is installed on your phone!"); });
+async function installApp() {
+  if (installEvt) { installEvt.prompt(); await installEvt.userChoice; installEvt = null; document.body.classList.remove("can-install"); return; }
+  const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  openModal(`<div class="modal-head" style="--img:url('${photo("hero", 900)}')"><span class="eyebrow">Install the app</span><h2>IELTS Pro on your home screen</h2><p>Open IELTS Pro like an app, in one tap, full screen.</p></div>
+    <div class="modal-body"><ol class="method-list">${ios ? `<li>Open this site in <b>Safari</b>.</li><li>Tap the <b>Share</b> button (square with an arrow).</li><li>Tap <b>Add to Home Screen</b>, then <b>Add</b>.</li>`
+      : `<li>Open this site in <b>Chrome</b>.</li><li>Tap the menu <b>⋮</b> at the top right.</li><li>Tap <b>Install app</b> or <b>Add to Home screen</b>.</li>`}</ol></div>`);
+}
+if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(() => { });
+
+// ---------- 2. Bouton de contact flottant ----------
+function contactFab() {
+  if (!PC.whatsapp || $("#contactFab")) return;
+  const a = document.createElement("a"); a.id = "contactFab"; a.href = waLink("Hello IELTS Pro, "); a.target = "_blank"; a.rel = "noopener"; a.setAttribute("aria-label", "Contact us on WhatsApp");
+  a.innerHTML = `<svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true"><path fill="#fff" d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm5.3 14.1c-.2.6-1.3 1.2-1.8 1.2-.5.1-1 .2-3.4-.7-2.9-1.1-4.7-4.1-4.8-4.3-.1-.2-1.2-1.6-1.2-3s.7-2.1 1-2.4c.3-.3.6-.3.8-.3h.6c.2 0 .4 0 .6.5l.9 2.1c.1.2.1.4 0 .6l-.4.6-.4.4c-.1.2-.3.3-.1.6.2.3.8 1.3 1.7 2.1 1.2 1 2.1 1.3 2.4 1.5.3.1.5.1.6-.1l.9-1c.2-.3.4-.2.7-.1l2 1c.3.1.5.2.5.3.1.2.1.6-.1 1.2z"/></svg>`;
+  document.body.appendChild(a);
+}
+
+// ---------- 12. Admin : ventes ----------
+const OFFER_NAMES = { "plan:level": "Know my level", "plan:prep": "IELTS preparation", "plan:premium": "Preparation + Teacher", "live:1": "Live · 1 session", "live:4": "Live · 4 sessions", "live:8": "Live · 8 sessions", "teacher:1": "Teacher · 1 month", "teacher:3": "Teacher · 3 months", "teacher:12": "Teacher · 12 months" };
+function adminSales(body) {
+  api("adminRevenue").then(d => {
+    const months = []; for (let i = 5; i >= 0; i--) { const dt = new Date(); dt.setDate(1); dt.setMonth(dt.getMonth() - i); months.push(dt.toISOString().slice(0, 7)); }
+    const vals = months.map(m => d.months[m] || { paid: 0, codes: 0 }), max = Math.max(10000, ...vals.map(v => v.paid + v.codes));
+    const total = vals.reduce((a, v) => a + v.paid + v.codes, 0), thisM = vals[5].paid + vals[5].codes;
+    const W = 640, H = 240, bw = 60, gap = (W - 60 - bw * 6) / 5;
+    const offers = Object.entries(d.offers).sort((a, b) => b[1] - a[1]), omax = Math.max(1, ...offers.map(o => o[1]));
+    body.innerHTML = `<div class="grid grid-2" style="align-items:start">
+      <div class="card"><h3>Money per month</h3><p class="muted small">Last 6 months · ${money(total)} in total · ${money(thisM)} this month</p>
+        <div class="chart-wrap"><svg viewBox="0 0 ${W} ${H + 40}" class="sales-chart" role="img" aria-label="Money per month">
+          ${[0, .5, 1].map(f => `<line x1="50" x2="${W}" y1="${10 + H * (1 - f)}" y2="${10 + H * (1 - f)}" class="grid-l"/><text x="44" y="${14 + H * (1 - f)}" text-anchor="end" class="ax">${Math.round(max * f / 1000)}k</text>`).join("")}
+          ${vals.map((v, i) => { const x = 60 + i * (bw + gap), hp = H * v.paid / max, hc = H * v.codes / max; return `<rect x="${x}" y="${10 + H - hp}" width="${bw}" height="${hp}" class="bar-paid"><title>${money(v.paid)} paid online</title></rect><rect x="${x}" y="${10 + H - hp - hc}" width="${bw}" height="${hc}" class="bar-codes"><title>${money(v.codes)} with codes</title></rect><text x="${x + bw / 2}" y="${H + 34}" text-anchor="middle" class="ax">${new Date(months[i] + "-01").toLocaleDateString("en-GB", { month: "short" })}</text>`; }).join("")}
+        </svg></div><p class="small"><span class="lg lg-paid"></span> Paid online <span class="lg lg-codes"></span> Codes and schools (estimated with your prices)</p></div>
+      <div class="card"><h3>Best-selling offers</h3>${offers.length ? offers.map(([k, n]) => `<div class="hbar"><span>${esc(OFFER_NAMES[k] || k)}</span><div><i style="width:${n / omax * 100}%"></i></div><b>${n}</b></div>`).join("") : `<p class="muted">No sale yet.</p>`}
+        <h3 style="margin-top:22px">Most booked teachers</h3>${d.topTeachers.length ? d.topTeachers.map(t => `<div class="hbar"><span>${esc(t.name)}${t.rating ? ` · ★ ${t.rating}` : ""}</span><div><i style="width:${t.classes / d.topTeachers[0].classes * 100}%"></i></div><b>${t.classes}</b></div>`).join("") : `<p class="muted">No class booked yet.</p>`}</div></div>`;
+  }).catch(e => { body.innerHTML = `<p class="pm-err">${esc(e.message)}</p>`; });
+}
+// ---------- 1. Admin : commandes ----------
+function adminOrdersTab(body) {
+  api("adminOrders").then(({ orders }) => {
+    body.innerHTML = `<p class="muted small">Online payments. Paid orders are activated automatically. If a student paid but the order stays "pending", check the SofizPay receipt, then click "Mark as paid".</p>` + (orders.length ? `<div class="a-table-wrap"><table class="a-table"><thead><tr><th>Date</th><th>Reference</th><th>Student</th><th>Offer</th><th>Amount</th><th>Status</th><th></th></tr></thead><tbody>
+      ${orders.map(o => `<tr><td><small>${new Date(o.created_at).toLocaleString("en-GB")}</small></td><td><code>${esc(o.id)}</code></td><td><b>${esc(o.name || "—")}</b><small>${esc(o.email || "")}</small></td><td>${esc(OFFER_NAMES[o.kind + ":" + o.value] || o.kind)}</td><td>${money(o.amount)}${o.promo ? `<small>promo ${esc(o.promo)}</small>` : ""}</td><td><span class="st ${o.status === "paid" ? "st-ok" : "st-wait"}">${esc(o.status)}</span>${o.source ? `<small>${esc(o.source)}</small>` : ""}</td><td>${o.status === "pending" ? `<button class="btn btn-ghost btn-sm" data-paid="${o.id}">Mark as paid</button>` : ""}</td></tr>`).join("")}
+    </tbody></table></div>` : `<p class="muted">No online payment yet.</p>`);
+    $$("[data-paid]").forEach(b => b.onclick = async () => {
+      if (!b.dataset.sure) { b.dataset.sure = "1"; b.textContent = "Click again to confirm"; return; }
+      try { await api("adminMarkPaid", { ref: b.dataset.paid }); toast("Order activated"); adminOrdersTab(body); } catch (e) { toast(e.message); }
+    });
+  }).catch(e => { body.innerHTML = `<p class="pm-err">${esc(e.message)}</p>`; });
+}
+// ---------- 10. Admin : codes promo ----------
+function adminPromosTab(body, created) {
+  api("adminPromos", created ? { create: created } : {}).then(({ promos }) => {
+    body.innerHTML = `<div class="grid grid-2" style="align-items:start">
+      <form class="card a-edit" id="promoForm"><h3>Create a promo code</h3>
+        <label>Code<input name="code" required maxlength="20" placeholder="RAMADAN20" style="text-transform:uppercase"></label>
+        <label>Discount (%)<input name="percent" type="number" min="1" max="90" value="20" required></label>
+        <label>Maximum uses (empty = unlimited)<input name="maxUses" type="number" min="1"></label>
+        <label>Ends on (optional)<input name="expires" type="date"></label>
+        <div class="row"><button class="btn btn-primary">Create</button><span class="small" id="promoAMsg"></span></div></form>
+      <div class="card"><h3>My promo codes</h3>${promos.length ? `<table class="a-table small-t"><thead><tr><th>Code</th><th>−%</th><th>Used</th><th>Ends</th><th></th></tr></thead><tbody>
+        ${promos.map(pr => `<tr><td><b>${esc(pr.code)}</b></td><td>${pr.percent} %</td><td>${pr.used}${pr.max_uses ? " / " + pr.max_uses : ""}</td><td><small>${pr.expires_at ? new Date(pr.expires_at).toLocaleDateString("en-GB") : "—"}</small></td><td><button class="btn btn-ghost btn-sm" data-ptog="${esc(pr.code)}">${pr.active ? "Turn off" : "Turn on"}</button></td></tr>`).join("")}</tbody></table>` : `<p class="muted">No promo code yet.</p>`}</div></div>`;
+    $("#promoForm").onsubmit = e => { e.preventDefault(); const f = new FormData(e.target); adminPromosTab(body, { code: f.get("code"), percent: f.get("percent"), maxUses: f.get("maxUses") || null, expires: f.get("expires") ? f.get("expires") + "T23:59:59Z" : null }); };
+    $$("[data-ptog]").forEach(b => b.onclick = () => api("adminPromos", { toggle: b.dataset.ptog }).then(() => adminPromosTab(body)));
+  }).catch(e => { if (created) { adminPromosTab(body); setTimeout(() => toast(e.message), 300); } else body.innerHTML = `<p class="pm-err">${esc(e.message)}</p>`; });
+}
+// ---------- 11. Admin : écoles ----------
+function adminSchools(body, created) {
+  api("adminGroups", created ? { create: created } : {}).then(({ groups, newCode }) => {
+    body.innerHTML = `<div class="grid grid-2" style="align-items:start">
+      <form class="card a-edit" id="schoolForm"><h3>Add a school</h3>
+        <p class="muted small">The school pays you for a number of places. Its students enter the school code on the Plans page. The manager logs in with Google (with the email below) and follows the students from "My account".</p>
+        <label>School name<input name="name" required maxlength="120"></label>
+        <label>Manager email (Google account)<input name="email" type="email" required></label>
+        <label>Plan for the students<select name="plan">${PLAN_LIST.map(pl => `<option value="${pl.id}" ${pl.id === "prep" ? "selected" : ""}>${esc(pl.name)}</option>`).join("")}</select></label>
+        <label>Number of places<input name="seats" type="number" min="1" value="20" required></label>
+        <div class="row"><button class="btn btn-primary">Create the school</button></div>
+        ${newCode ? `<div class="pay-back" style="margin:0"><b>School code (shown once): <code>${esc(newCode)}</code></b><span>Give it to the school. Each student enters it on the Plans page.</span></div>` : ""}</form>
+      <div class="card"><h3>Schools</h3>${groups.length ? groups.map(g => `<div class="hbar"><span><b>${esc(g.name)}</b><small>${esc(g.manager_email)} · ${esc(planOf(g.plan).name)}</small></span><div><i style="width:${g.members / g.seats * 100}%"></i></div><b>${g.members}/${g.seats}</b></div>`).join("") : `<p class="muted">No school yet.</p>`}</div></div>`;
+    $("#schoolForm").onsubmit = e => { e.preventDefault(); const f = new FormData(e.target); adminSchools(body, { name: f.get("name"), email: f.get("email"), plan: f.get("plan"), seats: f.get("seats") }); };
+  }).catch(e => { body.innerHTML = `<p class="pm-err">${esc(e.message)}</p>`; });
+}
+
+// ---------- 13. Langues de l'interface (English / Français / العربية) ----------
+const UI_LANGS = { en: "EN", fr: "FR", ar: "ع" };
+let UI_LANG = (() => { try { return localStorage.getItem(KEY + ":lang") || "en"; } catch { return "en"; } })();
+const I18N_ORIG = new WeakMap();
+function translateNode(root) {
+  if (UI_LANG === "en" || typeof I18N === "undefined") return;
+  const dict = I18N[UI_LANG]; if (!dict) return;
+  const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, { acceptNode: n => n.parentElement && !n.parentElement.closest("script,style,textarea,code,pre,.passage,.no-tr,.question,.option,.req-text,.msg,.sess-msg,.book-sheet,.sheet-wrap,.reading-text") ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT });
+  const nodes = []; while (w.nextNode()) nodes.push(w.currentNode);
+  nodes.forEach(n => {
+    const raw = n.nodeValue, t = raw.trim(); if (!t) return;
+    const tr = dict[t];
+    if (tr) { if (!I18N_ORIG.has(n)) I18N_ORIG.set(n, raw); n.nodeValue = raw.replace(t, tr); }
+  });
+  root.querySelectorAll && root.querySelectorAll("[placeholder]").forEach(el => { const t = el.getAttribute("placeholder"), tr = dict[t]; if (tr) el.setAttribute("placeholder", tr); });
+}
+let trBusy = false;
+const trObserver = new MutationObserver(muts => {
+  if (trBusy || UI_LANG === "en") return;
+  trBusy = true;
+  try { muts.forEach(m => m.addedNodes.forEach(nd => { if (nd.nodeType === 1) translateNode(nd); else if (nd.nodeType === 3 && nd.parentElement) translateNode(nd.parentElement); })); }
+  finally { trBusy = false; }
+});
+function setLang(l) {
+  UI_LANG = l; try { localStorage.setItem(KEY + ":lang", l); } catch { }
+  document.documentElement.lang = l === "ar" ? "ar" : l === "fr" ? "fr" : "en";
+  document.documentElement.dir = l === "ar" ? "rtl" : "ltr";
+  document.body.classList.toggle("rtl", l === "ar");
+  render();
+}
+function langSwitch() { return `<div class="lang-sw" role="group" aria-label="Language">${Object.entries(UI_LANGS).map(([k, v]) => `<button data-lang="${k}" class="${UI_LANG === k ? "on" : ""}" aria-pressed="${UI_LANG === k}">${v}</button>`).join("")}</div>`; }
+document.addEventListener("click", e => { const b = e.target.closest("[data-lang]"); if (b) setLang(b.dataset.lang); const ins = e.target.closest("[data-install]"); if (ins) installApp(); });
+
 /* =========================================================
    ROUTEUR
    ========================================================= */
 const ROUTES = {
   "": viewHome, test: viewTest, result: viewResult,
-  dashboard: viewDashboard, grammar: viewGrammar, vocab: p => viewVocab(p, "cards"), toolkit: viewToolkit, books: viewBooks, book: viewBook, about: viewAbout, premium: viewPremium, plans: viewPlans, live: viewLive, owner: viewOwner, teach: viewTeach, admin: viewAdmin, adminlogin: viewAdminLogin, teacher: viewTeacher, login: viewLogin, signup: viewSignup, forgot: viewForgot, account: viewAccount,
+  dashboard: viewDashboard, grammar: viewGrammar, vocab: p => viewVocab(p, "cards"), toolkit: viewToolkit, books: viewBooks, book: viewBook, about: viewAbout, premium: viewPremium, plans: viewPlans, live: viewLive, owner: viewOwner, teach: viewTeach, admin: viewAdmin, adminlogin: viewAdminLogin, messages: viewMessages, rank: viewRank, teacher: viewTeacher, login: viewLogin, signup: viewSignup, forgot: viewForgot, account: viewAccount,
   reading: viewReading, listening: viewListening, writing: viewWriting, speaking: p => viewSpeaking(p, "2"), progress: viewProgress
 };
 const NEEDS_LEVEL = ["toolkit", "dashboard", "grammar", "vocab", "reading", "listening", "writing", "speaking", "progress"];
@@ -3273,6 +3668,7 @@ function render() {
   const needsTest = ["test", "result"].includes(r), needsPrep = NEEDS_LEVEL.includes(r) || ["books", "book"].includes(r);
   if (S.ownerTest && !fbUser) fbUser = { uid: "owner-test", displayName: "Owner Test", email: "", photoURL: "" };
   if (["teach", "admin"].includes(r) && !PROFILE) { if (r === "teach") { S.signupAs = "teacher"; toast("Create your teacher account"); location.hash = "#/signup"; } else { location.hash = "#/adminlogin"; } return; }
+  if (["messages", "rank"].includes(r) && !PROFILE) { toast("Log in first"); location.hash = "#/login"; return; }
   if (r === "live" && !fbUser) { toast("Create your free account first"); location.hash = "#/signup"; return; }
   if ((needsTest || needsPrep) && !fbUser) { toast("Create your free account first"); location.hash = "#/signup"; return; }
   if (needsTest && planRank() < 1 && !isTeacherAcc()) { toast("Choose a plan to take the test"); location.hash = "#/plans"; return; }
@@ -3284,6 +3680,7 @@ function render() {
   if (S.ownerTest && !ob) { ob = document.createElement("a"); ob.id = "ownerBanner"; ob.href = "#/owner"; ob.textContent = "TEST MODE · everything unlocked · manage"; document.body.appendChild(ob); }
   if (!S.ownerTest && ob) ob.remove();
   app.classList.remove("page-enter"); void app.offsetWidth; app.classList.add("page-enter");
+  if (UI_LANG !== "en") translateNode(document.body); // avant le découpage des titres en mots
   initReveal();
   splitTitles();
   scrollTo(0, 0);
@@ -3305,6 +3702,10 @@ document.addEventListener("keydown", e => {
 });
 
 window.addEventListener("hashchange", render);
-refreshMe();
+(() => { const ref = new URLSearchParams(location.search).get("ref"); if (ref && /^R[A-Z0-9]{2,8}$/i.test(ref)) { S.refCode = ref.toUpperCase(); try { localStorage.setItem(KEY, JSON.stringify(S)); } catch { } } })();
+if (UI_LANG !== "en") { document.documentElement.lang = UI_LANG; document.documentElement.dir = UI_LANG === "ar" ? "rtl" : "ltr"; document.body.classList.toggle("rtl", UI_LANG === "ar"); }
+trObserver.observe(document.body, { childList: true, subtree: true });
+refreshMe().then(() => { pollUnread(); checkReminders(); setInterval(checkReminders, 5 * 60000); });
+contactFab();
 applyTheme();
 render();
