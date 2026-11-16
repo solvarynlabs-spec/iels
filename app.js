@@ -227,12 +227,12 @@ function toggleTheme() {
   save(); applyTheme(); updateTop();
 }
 
-const PAGE_TITLES = { dashboard: "Dashboard", grammar: "Grammar", vocab: "Vocabulary", reading: "Reading", listening: "Listening", writing: "Writing", speaking: "Speaking", progress: "My progress", toolkit: "Toolkit", books: "Collins books", book: "My study book" };
+const PAGE_TITLES = { dashboard: "Dashboard", grammar: "Grammar", vocab: "Vocabulary", reading: "Reading", listening: "Listening", writing: "Writing", speaking: "Speaking", progress: "My progress", toolkit: "Toolkit", books: "Collins books", book: "My study book", plans: "My plan", premium: "My plan", account: "My account", teacher: "Teacher correction" };
 const brandHTML = `<a href="#/" class="brand"><span class="brand-logo">i</span><span>IELTS<b>Pro</b></span></a>`;
 
 function updateTop() {
   const [route, p] = location.hash.replace(/^#\/?/, "").split("/");
-  const isApp = !!S.level && (NEEDS_LEVEL.includes(route) || ["books", "book", "premium", "teacher", "account"].includes(route));
+  const isApp = !!S.level && (NEEDS_LEVEL.includes(route) || ["books", "book", "premium", "plans", "teacher", "account"].includes(route));
   document.body.classList.toggle("appmode", isApp);
   document.body.classList.toggle("public", !isApp);
   const dark = document.documentElement.dataset.theme === "dark";
@@ -255,7 +255,7 @@ function updateTop() {
       ${link("books", "book", "Collins books", null, "#e4002b")}
       <div class="side-label">Premium</div>
       ${link("teacher", "pen", "Teacher correction", null, "#e4002b")}
-      ${link("premium", "star", isPremium() ? "Premium ✓" : "Go Premium", null, "#e4002b")}
+      ${link("plans", "star", planRank() ? "My plan" : "Plans", null, "#e4002b")}
       <div class="side-label">${L.id} modules</div>
       ${MODULES.map(m => link(m.route, m.icon, m.name, m.key, m.color)).join("")}
       <div class="side-level">
@@ -275,7 +275,7 @@ function updateTop() {
     $("#sidebar").innerHTML = "";
     const onHome = route === "";
     $("#topbar").innerHTML = `${brandHTML}
-      <nav class="pubnav">${onHome ? [["format", "The exam"], ["score", "Score calculator"], ["criteres", "Criteria"], ["modules", "Practice"], ["faq", "FAQ"]].map(([id, n]) => `<button data-scroll="${id}">${n}</button>`).join("") : `<button data-go="">Home</button>`}<button data-go="books">Books</button><button data-go="about">About</button><button data-go="premium" class="nav-premium">Premium</button></nav>
+      <nav class="pubnav">${onHome ? [["format", "The exam"], ["score", "Score calculator"], ["criteres", "Criteria"], ["modules", "Practice"], ["faq", "FAQ"]].map(([id, n]) => `<button data-scroll="${id}">${n}</button>`).join("") : `<button data-go="">Home</button>`}<button data-go="books">Books</button><button data-go="about">About</button><button data-go="plans" class="nav-premium">Plans</button></nav>
       <div class="top-actions">${flagPair("sm")}${themeBtn}${fbUser ? `<a class="avatar" href="#/account" title="My account">${initials(fbUser.displayName || fbUser.email)}</a>` : `<a class="btn btn-ghost btn-sm auth-link" href="#/login">Log in</a>`}
         ${S.level ? `<a class="btn btn-dark btn-sm" href="#/dashboard">My dashboard ${ic("arrow", "sm arrow")}</a>` : route === "test" ? "" : `<a class="btn btn-primary btn-sm" href="#/test">Take the test ${ic("arrow", "sm arrow")}</a>`}
       </div>`;
@@ -1103,7 +1103,11 @@ function finishTest() {
   S.level = S.placement.level; // le parcours du niveau détecté est ouvert automatiquement
   save();
   T = null;
-  location.hash = "#/result";
+  if (planRank() >= 2) {
+    // Préparation incluse : on emmène l'élève directement vers le cours de son niveau
+    toast(`Your level: band ${band.toFixed(1)} · ${S.placement.level}. Your ${S.placement.level} course is ready!`);
+    location.hash = "#/dashboard";
+  } else location.hash = "#/result";
 }
 
 /* ---------- Plan d'amélioration : compétences de la plus faible à la plus forte ---------- */
@@ -1155,7 +1159,8 @@ function viewResult() {
             <button class="btn btn-primary btn-lg" id="go">Start improving: ${modOf(improvementOrder()[0]).name} ${ic("arrow", "arrow")}</button>
             <a class="btn btn-ghost btn-lg" href="#/book/${L.id}" id="goBook">Read my free ${L.id} book</a>
           </div>
-          <p class="small muted" style="margin:12px 0 0">Your ${L.id} course is now open. We start with your weakest skill.</p>
+          ${planRank() >= 2 ? `<p class="small muted" style="margin:12px 0 0">Your ${L.id} course is now open. We start with your weakest skill.</p>`
+            : `<div class="plan-upsell"><b>Want to prepare for the exam at level ${L.id}?</b><span>Upgrade to IELTS preparation to open your ${L.id} course: 72 corrected exercises, your study book and a 7-day plan.</span><a class="btn btn-primary btn-sm" href="#/plans">Upgrade ${ic("arrow", "sm arrow")}</a></div>`}
         </div>
       </div>
     </div>
@@ -2344,7 +2349,12 @@ function drawPoster(c) {
 
 /* ---------------- Premium (SofizPay) et correction par un professeur ---------------- */
 const PC = typeof PREMIUM_CONFIG !== "undefined" ? PREMIUM_CONFIG : { price: 5000, currency: "DA", priceNote: "one payment", sofizpayLink: "", whatsapp: "", email: "", codeHashes: [] };
-const isPremium = () => !!(S.premium && S.premium.since);
+const PLAN_LIST = typeof PLANS !== "undefined" ? PLANS : [];
+const planOf = id => PLAN_LIST.find(p => p.id === id);
+// Rang de l'offre active : 0 = aucune, 1 = niveau, 2 = préparation, 3 = préparation + professeur
+const planRank = () => S.plan && planOf(S.plan.id) ? planOf(S.plan.id).rank : (S.premium && S.premium.since ? 3 : 0);
+const isPremium = () => planRank() >= 3;
+const money = n => `${Number(n).toLocaleString("fr-FR").replace(/\s/g, " ")} ${PC.currency}`;
 const priceTxt = () => `${PC.price.toLocaleString("fr-FR").replace(/ /g, " ")} ${PC.currency}`;
 async function sha256Hex(txt) {
   const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(txt));
@@ -2359,99 +2369,95 @@ const contactButtons = (subject, body) => {
 };
 
 // Paiement SofizPay : l'élève est envoyé vers la page CIB / Edahabia de SofizPay (même appel que makeCIBTransaction du kit officiel)
-function openPayForm() {
-  const m = openModal(`<div class="modal-head" style="--img:url('${photo("grad", 900)}')"><span class="eyebrow">Secure payment · SofizPay</span><h2>Pay ${priceTxt()} for Premium</h2><p>SofizPay asks for these details to create your CIB or Edahabia card payment. You enter your card details on SofizPay's page, never on IELTS Pro.</p></div>
+function openPayForm(plan) {
+  const m = openModal(`<div class="modal-head" style="--img:url('${photo("grad", 900)}')"><span class="eyebrow">Secure payment · SofizPay</span><h2>${esc(plan.name)} · ${money(plan.price)}</h2><p>SofizPay asks for these details to create your CIB or Edahabia card payment. You enter your card details on SofizPay's page, never on IELTS Pro.</p></div>
     <form class="modal-body pay-form" id="payForm" autocomplete="on">
-      <label>Full name<input name="full_name" required minlength="3" autocomplete="name" placeholder="First name and last name"></label>
+      <label>Full name<input name="full_name" required minlength="3" autocomplete="name" placeholder="First name and last name" value="${esc((fbUser && fbUser.displayName) || "")}"></label>
       <label>Phone<input name="phone" required type="tel" autocomplete="tel" placeholder="+213 5XX XX XX XX" pattern="[+0-9 ().\-]{9,22}" title="Your phone number, for example +213 555 12 34 56 or 0555 12 34 56"></label>
-      <label>Email<input name="email" required type="email" autocomplete="email" placeholder="you@example.com"></label>
-      <p class="small muted">After paying, you come back here. Send your receipt and you will receive your activation code.</p>
-      <div class="row"><button class="btn btn-primary btn-lg" type="submit">Continue to SofizPay ${ic("arrow", "arrow")}</button><span class="pm-cards"><span>CIB</span><span>Edahabia</span></span></div>
+      <label>Email<input name="email" required type="email" autocomplete="email" placeholder="you@example.com" value="${esc((fbUser && fbUser.email) || "")}"></label>
+      <p class="small muted">After paying, you come back here. Send your receipt and you receive your activation code.</p>
+      <div class="row"><button class="btn btn-primary btn-lg" type="submit">Pay ${money(plan.price)} ${ic("arrow", "arrow")}</button><span class="pm-cards"><span>CIB</span><span>Edahabia</span></span></div>
     </form>`);
   $("#payForm", m).onsubmit = e => {
     e.preventDefault();
     const f = new FormData(e.target);
+    S.payStarted = { plan: plan.id, date: new Date().toISOString() }; save();
+    if (!PC.sofizpayAccount && PC.sofizpayLink) { location.href = PC.sofizpayLink; return; }
     const params = new URLSearchParams({
-      account: PC.sofizpayAccount, amount: String(PC.price),
+      account: PC.sofizpayAccount, amount: String(plan.price),
       full_name: f.get("full_name").trim(), phone: f.get("phone").replace(/\s+/g, ""), email: f.get("email").trim(),
-      memo: "IELTS Pro Premium", return_url: SITE_URL + "#/premium/paid", redirect: "yes"
+      memo: "IELTS Pro " + plan.name, return_url: SITE_URL + "#/plans/paid", redirect: "yes"
     });
-    S.payStarted = new Date().toISOString(); save();
     location.href = `${PC.sofizpayEndpoint}?${params.toString()}`;
   };
 }
 
-function viewPremium(p) {
-  const prem = isPremium();
+// Page des offres : affichée après la création du compte, avant le test
+function viewPlans(p) {
+  const rank = planRank(), cur = S.plan && planOf(S.plan.id);
   const canPay = !!(PC.sofizpayAccount || PC.sofizpayLink);
-  const payBtn = PC.sofizpayAccount
-    ? `<button class="btn btn-primary btn-lg" data-pay>Pay ${priceTxt()} with SofizPay ${ic("arrow", "arrow")}</button>`
-    : PC.sofizpayLink
-      ? `<a class="btn btn-primary btn-lg" href="${PC.sofizpayLink}" target="_blank" rel="noopener">Pay ${priceTxt()} with SofizPay ${ic("arrow", "arrow")}</a>`
-      : `<button class="btn btn-primary btn-lg" disabled>Online payment coming soon</button>`;
-  const backFromPay = p === "paid" && !prem;
+  const backFromPay = p === "paid";
+  const pending = S.payStarted && planOf(S.payStarted.plan);
+  const name = fbUser ? (fbUser.displayName || "").split(" ")[0] : "";
   app.innerHTML = `<div class="${S.level ? "" : "wrap"}" style="${S.level ? "" : "padding-top:30px;padding-bottom:60px"}">
-    ${backFromPay ? `<div class="pay-back fade-in"><b>Thank you! Your payment was sent to SofizPay.</b><span>Now send your receipt (step 2 below) to receive your activation code, then enter it in step 3.</span></div>` : ""}
-    <section class="pm-hero">
-      <div class="pm-copy">
-        <span class="eyebrow" style="color:#fff">IELTS Pro Premium</span>
-        <h1 class="display">Get your Writing and Speaking corrected by a teacher.</h1>
-        <p>Everything on IELTS Pro stays free. Premium adds personal corrections by a teacher, so you know exactly what to fix before the exam.</p>
-        ${prem ? `<div class="pm-active">${ic("check", "sm")} Premium is active on this device since ${new Date(S.premium.since).toLocaleDateString("en-GB")}</div>
-          <a class="btn btn-white btn-lg" href="#/teacher">Send a correction request ${ic("arrow", "arrow")}</a>` : payBtn.replace("btn-primary", "btn-white")}
-      </div>
-      <div class="pm-price">
-        <span class="pm-label">Premium</span>
-        <div class="pm-amount">${PC.price.toLocaleString("fr-FR").replace(/ /g, " ")}<small>${PC.currency}</small></div>
-        <span class="pm-note">${esc(PC.priceNote)}</span>
-        <ul>
-          <li>Writing essays corrected by a teacher</li>
-          <li>Speaking recordings assessed by a teacher</li>
-          <li>Feedback on the 4 official criteria</li>
-          <li>Everything free stays free</li>
-        </ul>
-        <div class="pm-cards"><span>CIB</span><span>Edahabia</span><span>via SofizPay</span></div>
-      </div>
+    ${backFromPay ? `<div class="pay-back fade-in"><b>Thank you! Your payment was sent to SofizPay.</b><span>Send your receipt (step 2) to receive your activation code, then enter it in step 3.</span></div>` : ""}
+    <section class="plans-head fade-in">
+      <span class="eyebrow">${name ? `Welcome, ${esc(name)}` : "Choose your plan"}</span>
+      <h1 class="display">What do you want to do?</h1>
+      <p class="lead">Only want your IELTS band? Or want to prepare for the exam at your level? Choose a plan: you take the test right after, and the course for your level opens automatically.</p>
+      ${cur ? `<div class="plan-current">${ic("check", "sm")} Your plan: <b>${esc(cur.name)}</b> · since ${new Date(S.plan.since).toLocaleDateString("en-GB")}${!S.level ? ` · <a href="#/test">Take the test now →</a>` : ` · <a href="#/dashboard">Open my course →</a>`}</div>` : ""}
     </section>
 
-    <section class="pm-compare">
-      <div class="pm-col">
-        <h3>Free</h3><span class="muted">for everyone</span>
-        <ul>${["Placement test and band estimate", "72 exercises at your level", "4 free study books (PDF)", "Automatic Writing analysis", "Speaking practice with transcription", "Score calculator and exam guide"].map(x => `<li>${x}</li>`).join("")}</ul>
-      </div>
-      <div class="pm-col pm-col-premium">
-        <h3>Premium</h3><span>${priceTxt()} · ${esc(PC.priceNote)}</span>
-        <ul>${["Everything in Free", "Teacher corrections for your Writing", "Teacher feedback on your Speaking recordings", "Personal advice on what to improve next"].map(x => `<li>${x}</li>`).join("")}</ul>
-      </div>
+    <section class="plan-grid">
+      ${PLAN_LIST.map((pl, i) => {
+        const owned = rank >= pl.rank, upgrade = rank > 0 && !owned;
+        return `<article class="plan-card ${pl.best ? "best" : ""} ${owned ? "owned" : ""}" style="--d:${i * .08}s">
+          ${pl.best ? `<span class="plan-badge">Most chosen</span>` : ""}
+          <h3>${esc(pl.name)}</h3>
+          <p class="plan-tag">${esc(pl.tagline)}</p>
+          <div class="plan-price">${Number(pl.price).toLocaleString("fr-FR").replace(/\s/g, " ")}<small>${PC.currency}</small></div>
+          <span class="plan-note">one payment · CIB or Edahabia</span>
+          <ul>${pl.features.map(f => `<li>${esc(f)}</li>`).join("")}</ul>
+          ${owned ? `<button class="btn btn-ghost" disabled>${ic("check", "sm")} Included in your plan</button>`
+            : canPay ? `<button class="btn ${pl.best ? "btn-primary" : "btn-dark"}" data-plan="${pl.id}">${upgrade ? "Upgrade" : "Choose"} · ${money(pl.price)} ${ic("arrow", "sm arrow")}</button>`
+            : `<button class="btn btn-ghost" disabled>Online payment coming soon</button>`}
+        </article>`;
+      }).join("")}
     </section>
 
     <section class="pm-steps">
-      <h2 class="h2-sec">How to get Premium</h2>
+      <h2 class="h2-sec">How it works</h2>
       <ol>
-        <li><span class="pm-n">01</span><div><b>Pay securely with SofizPay</b><p>Pay ${priceTxt()} by CIB or Edahabia card. The payment page is run by SofizPay: IELTS Pro never sees your card details.</p>${payBtn.replace(" btn-lg", "")}</div></li>
-        <li><span class="pm-n">02</span><div><b>Send your payment receipt</b><p>Send a screenshot of your receipt. We reply with your personal activation code.</p><div class="row">${contactButtons("IELTS Pro Premium — payment receipt", "Hello, I have paid for IELTS Pro Premium. Here is my receipt (attached). My name: ")}</div></div></li>
-        <li><span class="pm-n">03</span><div><b>Enter your activation code</b><p>Type the code you received to unlock Premium on this device.</p>
-          <form class="pm-code" id="codeForm" autocomplete="off"><input id="codeIn" placeholder="IELTS-XXXX-XXXX" maxlength="20" aria-label="Activation code" ${prem ? "disabled" : ""}><button class="btn btn-primary" ${prem ? "disabled" : ""}>Activate</button></form>
-          <p class="small" id="codeMsg">${prem ? "Premium is already active on this device." : ""}</p></div></li>
+        <li><span class="pm-n">01</span><div><b>Choose a plan and pay with SofizPay</b><p>Pay by CIB or Edahabia card. The payment page is run by SofizPay: IELTS Pro never sees your card details.</p></div></li>
+        <li><span class="pm-n">02</span><div><b>Send your payment receipt</b><p>Send a screenshot of your receipt${pending ? ` for <b>${esc(pending.name)}</b>` : ""}. We reply with your personal activation code.</p><div class="row">${contactButtons("IELTS Pro — payment receipt", `Hello, I have paid for IELTS Pro (${pending ? pending.name : "plan"}). Here is my receipt (attached). My name: ${fbUser ? fbUser.displayName : ""} · ${fbUser ? fbUser.email : ""}`)}</div></div></li>
+        <li><span class="pm-n">03</span><div><b>Enter your activation code</b><p>The code unlocks your plan. Then you take the placement test and go straight to the course for your level.</p>
+          <form class="pm-code" id="codeForm" autocomplete="off"><input id="codeIn" placeholder="IELTS-XXXX-XXXX" maxlength="20" aria-label="Activation code"><button class="btn btn-primary">Activate</button></form>
+          <p class="small" id="codeMsg"></p></div></li>
       </ol>
-      <p class="small muted">Premium is activated on the device and browser where you enter your code. Keep your code to activate it again if you change device.</p>
     </section>
   </div>`;
-  $$("[data-pay]", app).forEach(b => b.onclick = openPayForm);
+  $$("[data-plan]", app).forEach(b => b.onclick = () => {
+    if (!fbUser) { toast("Create your account first"); location.hash = "#/signup"; return; }
+    openPayForm(planOf(b.dataset.plan));
+  });
   if (backFromPay) setTimeout(() => $(".pm-steps")?.scrollIntoView({ behavior: "smooth", block: "start" }), 400);
-  const form = $("#codeForm");
-  if (form) form.onsubmit = async e => {
+  $("#codeForm").onsubmit = async e => {
     e.preventDefault();
     const code = $("#codeIn").value.trim().toUpperCase().replace(/\s+/g, "");
     const msg = $("#codeMsg");
     if (!/^IELTS-[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(code)) { msg.textContent = "The code should look like IELTS-XXXX-XXXX."; msg.className = "small pm-err"; return; }
-    let ok = false;
-    try { ok = (PC.codeHashes || []).includes(await sha256Hex(code)); } catch { msg.textContent = "Activation needs a secure connection (https)."; return; }
-    if (!ok) { msg.textContent = "This code is not valid. Check it and try again."; msg.className = "small pm-err"; return; }
-    S.premium = { since: new Date().toISOString(), tail: code.slice(-4) }; save(); confetti();
-    toast("Premium activated — welcome!"); render();
+    let h; try { h = await sha256Hex(code); } catch { msg.textContent = "Activation needs a secure connection (https)."; msg.className = "small pm-err"; return; }
+    const pl = PLAN_LIST.slice().sort((a, b) => b.rank - a.rank).find(x => (x.codeHashes || []).includes(h));
+    if (!pl) { msg.textContent = "This code is not valid. Check it and try again."; msg.className = "small pm-err"; return; }
+    if (pl.rank <= planRank()) { msg.textContent = `Your plan already includes ${pl.name}.`; msg.className = "small pm-err"; return; }
+    S.plan = { id: pl.id, since: new Date().toISOString(), tail: code.slice(-4) };
+    if (pl.rank >= 3) S.premium = { since: S.plan.since, tail: S.plan.tail };
+    S.payStarted = null; save(); confetti();
+    toast(`${pl.name} activated!`);
+    location.hash = S.level ? (pl.rank >= 2 ? "#/dashboard" : "#/result") : "#/test";
   };
 }
+const viewPremium = viewPlans;
 
 function viewTeacher(p) {
   const prem = isPremium();
@@ -2464,7 +2470,7 @@ function viewTeacher(p) {
         <div class="pm-lock-ic">${ic("trophy", "lg")}</div>
         <h2>This feature is part of Premium</h2>
         <p class="muted">Your essays and recordings are corrected by a teacher, with clear advice on Task Achievement, Coherence, Vocabulary and Grammar. Premium costs ${priceTxt()} (${esc(PC.priceNote)}).</p>
-        <a class="btn btn-primary btn-lg" href="#/premium">See Premium ${ic("arrow", "arrow")}</a>
+        <a class="btn btn-primary btn-lg" href="#/plans">See the plans ${ic("arrow", "arrow")}</a>
       </div>
     </div>`;
     return;
@@ -2563,7 +2569,7 @@ function onGoogleCredential(resp) {
   save();
   toast(`Welcome, ${(fbUser.displayName || "student").split(" ")[0]}!`);
   updateTop();
-  location.hash = S.level ? "#/dashboard" : "#/account";
+  location.hash = planRank() < 1 ? "#/plans" : !S.level ? "#/test" : planRank() >= 2 ? "#/dashboard" : "#/result";
 }
 // Garde une copie de la progression liée au compte Google
 function scheduleCloud() { if (!fbUser) return; try { localStorage.setItem(userStateKey(fbUser), JSON.stringify(S)); } catch { } }
@@ -2626,7 +2632,7 @@ function viewAccount() {
     </section>
     <div class="grid grid-3" style="margin-top:20px">
       <div class="card acc-stat"><small>Level</small><b>${L ? L.id + " · " + L.name : "Not tested yet"}</b>${L ? `<a href="#/dashboard">Open my dashboard →</a>` : `<a href="#/test">Take the placement test →</a>`}</div>
-      <div class="card acc-stat"><small>Premium</small><b>${isPremium() ? "Active ✓" : "Not active"}</b><a href="#/premium">${isPremium() ? "Teacher correction →" : "See Premium →"}</a></div>
+      <div class="card acc-stat"><small>My plan</small><b>${planRank() ? esc(planOf(S.plan ? S.plan.id : "premium").name) : "No plan yet"}</b><a href="#/plans">${planRank() ? "See the plans →" : "Choose a plan →"}</a></div>
       <div class="card acc-stat"><small>Full tests taken</small><b>${Object.keys(S.fullTests || {}).length} / 5</b><a href="#/test">See the tests →</a></div>
     </div>
     <p class="small muted" style="margin-top:16px">Your progress is saved on this device and linked to your Google account.</p>
@@ -2644,7 +2650,7 @@ function viewAccount() {
    ========================================================= */
 const ROUTES = {
   "": viewHome, test: viewTest, result: viewResult,
-  dashboard: viewDashboard, grammar: viewGrammar, vocab: p => viewVocab(p, "cards"), toolkit: viewToolkit, books: viewBooks, book: viewBook, about: viewAbout, premium: viewPremium, teacher: viewTeacher, login: viewLogin, signup: viewSignup, forgot: viewForgot, account: viewAccount,
+  dashboard: viewDashboard, grammar: viewGrammar, vocab: p => viewVocab(p, "cards"), toolkit: viewToolkit, books: viewBooks, book: viewBook, about: viewAbout, premium: viewPremium, plans: viewPlans, teacher: viewTeacher, login: viewLogin, signup: viewSignup, forgot: viewForgot, account: viewAccount,
   reading: viewReading, listening: viewListening, writing: viewWriting, speaking: p => viewSpeaking(p, "2"), progress: viewProgress
 };
 const NEEDS_LEVEL = ["toolkit", "dashboard", "grammar", "vocab", "reading", "listening", "writing", "speaking", "progress"];
@@ -2654,6 +2660,11 @@ function render() {
   closeModal();
   stopSpeak();
   const [r, p] = location.hash.replace(/^#\/?/, "").split("/");
+  // Parcours : compte Google → choix de l'offre → test de niveau → préparation de son niveau
+  const needsTest = ["test", "result"].includes(r), needsPrep = NEEDS_LEVEL.includes(r) || ["books", "book"].includes(r);
+  if ((needsTest || needsPrep) && !fbUser) { toast("Create your free account first"); location.hash = "#/signup"; return; }
+  if (needsTest && planRank() < 1) { toast("Choose a plan to take the test"); location.hash = "#/plans"; return; }
+  if (needsPrep && planRank() < 2) { toast("The course is in the IELTS preparation plan"); location.hash = "#/plans"; return; }
   if (NEEDS_LEVEL.includes(r) && !S.level) { toast("Take the placement test first"); location.hash = "#/test"; return; }
   updateTop();
   (ROUTES[r] || viewHome)(p);
