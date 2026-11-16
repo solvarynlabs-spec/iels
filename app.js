@@ -2884,7 +2884,7 @@ function render() {
   const [r, p] = location.hash.replace(/^#\/?/, "").split("/");
   // Parcours : compte Google → choix de l'offre → test de niveau → préparation de son niveau
   const needsTest = ["test", "result"].includes(r), needsPrep = NEEDS_LEVEL.includes(r) || ["books", "book"].includes(r);
-  if (S.ownerTest && !fbUser) fbUser = { uid: "owner-test", displayName: "Owner (test)", email: "", photoURL: "" };
+  if (S.ownerTest && !fbUser) fbUser = { uid: "owner-test", displayName: "Owner Test", email: "", photoURL: "" };
   if (r === "live" && !fbUser) { toast("Create your free account first"); location.hash = "#/signup"; return; }
   if ((needsTest || needsPrep) && !fbUser) { toast("Create your free account first"); location.hash = "#/signup"; return; }
   if (needsTest && planRank() < 1) { toast("Choose a plan to take the test"); location.hash = "#/plans"; return; }
