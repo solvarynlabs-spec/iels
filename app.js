@@ -2374,7 +2374,7 @@ const PC = typeof PREMIUM_CONFIG !== "undefined" ? PREMIUM_CONFIG : { price: 500
 const PLAN_LIST = typeof PLANS !== "undefined" ? PLANS : [];
 const planOf = id => PLAN_LIST.find(p => p.id === id);
 // Rang de l'offre active : 0 = aucune, 1 = niveau, 2 = préparation, 3 = préparation + professeur
-const planRank = () => S.plan && planOf(S.plan.id) ? planOf(S.plan.id).rank : (S.premium && S.premium.since ? 3 : 0);
+const planRank = () => S.ownerTest ? 3 : S.plan && planOf(S.plan.id) ? planOf(S.plan.id).rank : (S.premium && S.premium.since ? 3 : 0);
 const isPremium = () => planRank() >= 3;
 const LIVE_LIST = typeof LIVE_PACKS !== "undefined" ? LIVE_PACKS : [];
 const LC = typeof LIVE_CONFIG !== "undefined" ? LIVE_CONFIG : { teacher: "Your teacher", minutes: 60, closedDays: [5], slots: ["17:00"], roomBase: "https://meet.jit.si/" };
@@ -2519,6 +2519,32 @@ function viewPlans(p) {
   };
 }
 const viewPremium = viewPlans;
+
+/* ---------- Mode test du propriétaire : #/owner ---------- */
+function viewOwner() {
+  const on = !!S.ownerTest;
+  app.innerHTML = `<div class="wrap" style="padding-top:40px;padding-bottom:60px"><div class="owner-card fade-in">
+    <span class="eyebrow">Solvarynlabs · owner</span>
+    <h1>Test mode</h1>
+    <p class="muted">Unlocks everything on <b>this device only</b> so you can test the site without paying: placement tests, the course, books, live classes and teacher correction. Students stay locked.</p>
+    ${on ? `<div class="owner-on">${ic("check", "sm")} Test mode is ON on this device.</div>
+      <div class="row" style="margin-top:18px"><a class="btn btn-primary" href="#/test">Test the placement test</a><a class="btn btn-dark" href="#/live">Test live classes</a><a class="btn btn-ghost" href="#/plans">See the plans page</a></div>
+      <button class="btn btn-ghost" id="ownerOff" style="margin-top:22px">Turn test mode off</button>`
+    : `<form class="pm-code" id="ownerForm" autocomplete="off" style="margin-top:18px"><input id="ownerPin" type="password" placeholder="Owner PIN" aria-label="Owner PIN"><button class="btn btn-primary">Unlock</button></form><p class="small" id="ownerMsg"></p>`}
+  </div></div>`;
+  const f = $("#ownerForm");
+  if (f) f.onsubmit = async e => {
+    e.preventDefault();
+    const pin = $("#ownerPin").value.trim().toUpperCase(), msg = $("#ownerMsg");
+    let h = ""; try { h = await sha256Hex(pin); } catch { msg.textContent = "Needs a secure connection (https)."; msg.className = "small pm-err"; return; }
+    if (typeof OWNER_PIN_HASH === "undefined" || h !== OWNER_PIN_HASH) { msg.textContent = "Wrong PIN."; msg.className = "small pm-err"; return; }
+    S.ownerTest = { since: new Date().toISOString() };
+    const L = liveState(); if (L.credits < 10) L.credits = 10;
+    save(); toast("Test mode ON — everything is unlocked on this device"); render();
+  };
+  const off = $("#ownerOff");
+  if (off) off.onclick = () => { S.ownerTest = null; if (fbUser && fbUser.uid === "owner-test") fbUser = null; save(); toast("Test mode OFF"); location.hash = "#/"; };
+}
 
 /* ---------- Cours en direct (vidéo) ---------- */
 function liveCallMock() {
@@ -2838,7 +2864,7 @@ function viewAccount() {
    ========================================================= */
 const ROUTES = {
   "": viewHome, test: viewTest, result: viewResult,
-  dashboard: viewDashboard, grammar: viewGrammar, vocab: p => viewVocab(p, "cards"), toolkit: viewToolkit, books: viewBooks, book: viewBook, about: viewAbout, premium: viewPremium, plans: viewPlans, live: viewLive, teacher: viewTeacher, login: viewLogin, signup: viewSignup, forgot: viewForgot, account: viewAccount,
+  dashboard: viewDashboard, grammar: viewGrammar, vocab: p => viewVocab(p, "cards"), toolkit: viewToolkit, books: viewBooks, book: viewBook, about: viewAbout, premium: viewPremium, plans: viewPlans, live: viewLive, owner: viewOwner, teacher: viewTeacher, login: viewLogin, signup: viewSignup, forgot: viewForgot, account: viewAccount,
   reading: viewReading, listening: viewListening, writing: viewWriting, speaking: p => viewSpeaking(p, "2"), progress: viewProgress
 };
 const NEEDS_LEVEL = ["toolkit", "dashboard", "grammar", "vocab", "reading", "listening", "writing", "speaking", "progress"];
@@ -2850,6 +2876,7 @@ function render() {
   const [r, p] = location.hash.replace(/^#\/?/, "").split("/");
   // Parcours : compte Google → choix de l'offre → test de niveau → préparation de son niveau
   const needsTest = ["test", "result"].includes(r), needsPrep = NEEDS_LEVEL.includes(r) || ["books", "book"].includes(r);
+  if (S.ownerTest && !fbUser) fbUser = { uid: "owner-test", displayName: "Owner (test)", email: "", photoURL: "" };
   if (r === "live" && !fbUser) { toast("Create your free account first"); location.hash = "#/signup"; return; }
   if ((needsTest || needsPrep) && !fbUser) { toast("Create your free account first"); location.hash = "#/signup"; return; }
   if (needsTest && planRank() < 1) { toast("Choose a plan to take the test"); location.hash = "#/plans"; return; }
@@ -2857,6 +2884,9 @@ function render() {
   if (NEEDS_LEVEL.includes(r) && !S.level) { toast("Take the placement test first"); location.hash = "#/test"; return; }
   updateTop();
   (ROUTES[r] || viewHome)(p);
+  let ob = $("#ownerBanner");
+  if (S.ownerTest && !ob) { ob = document.createElement("a"); ob.id = "ownerBanner"; ob.href = "#/owner"; ob.textContent = "TEST MODE · everything unlocked · manage"; document.body.appendChild(ob); }
+  if (!S.ownerTest && ob) ob.remove();
   app.classList.remove("page-enter"); void app.offsetWidth; app.classList.add("page-enter");
   initReveal();
   splitTitles();

@@ -73,6 +73,14 @@ const LIVE_PACKS = [
 ];
 
 /* =========================================================
+   MODE TEST DU PROPRIÉTAIRE (Solvarynlabs)
+   Page secrète : #/owner. Avec le bon code PIN, tout est débloqué sur CET appareil
+   (test, cours, cours en direct, professeur) sans payer. Le PIN n'est pas ici :
+   seulement son empreinte SHA-256.
+   ========================================================= */
+const OWNER_PIN_HASH = "852929f230c61f736c1e60871b869cb130206db5f7333da3f65eba4e145d85c6";
+
+/* =========================================================
    COMPTES ÉLÈVES (Google Cloud — « Se connecter avec Google »)
    ID client OAuth créé dans console.cloud.google.com > API et services > Identifiants.
    Il est public : on peut le publier sans risque.
