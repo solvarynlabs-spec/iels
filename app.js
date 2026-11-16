@@ -2222,33 +2222,49 @@ function viewAbout() {
   const share = encodeURIComponent(`IELTS Pro — find your IELTS level and prepare for the exam, made in Aïn Beïda by Solvarynlabs: ${SITE_URL}`);
   app.innerHTML = `
   <section class="ad-hero">
-    <div class="ad-bg" aria-hidden="true">${["IELTS", "BAND 7", "READING", "WRITING", "SPEAKING", "LISTENING", "FREE"].map((w, i) => `<span style="--i:${i}">${w}</span>`).join("")}</div>
+    <div class="ad-bg" aria-hidden="true">${["IELTS", "BAND 7", "READING", "WRITING", "SPEAKING", "LISTENING", "UK"].map((w, i) => `<span style="--i:${i}">${w}</span>`).join("")}</div>
+    <div class="ad-glow" aria-hidden="true"></div>
     <div class="wrap ad-hero-in">
       <div class="ad-copy">
-        <span class="ad-kicker">${flagDZ()} Made in ${STUDIO.city}, ${STUDIO.country}</span>
-        <h1 class="display ad-title">Your free <em>IELTS coach</em>, online.</h1>
-        <p class="ad-lead">IELTS Pro is designed and built by <b>${STUDIO.name}</b> in ${STUDIO.city} for every student who wants to study in the UK and beyond. A placement test, ${exercises} exercises, free study books — and the full course is free.</p>
+        <h1 class="display ad-title">Your <em>IELTS coach</em>, in your pocket.</h1>
+        <p class="ad-lead">Find your real level, follow the course made for it and practise with real teachers in live video classes. Built by <b>${STUDIO.name}</b> for every student who wants to study in the UK and beyond.</p>
         <div class="row" style="margin-top:28px">
-          <a class="btn btn-white btn-lg" href="#/test">Start free — take the test ${ic("arrow", "arrow")}</a>
-          <button class="btn btn-outline-white btn-lg" data-scroll="share">Share with a friend</button>
+          <a class="btn btn-white btn-lg" href="#/test">Take the placement test ${ic("arrow", "arrow")}</a>
+          <button class="btn btn-outline-white btn-lg" data-scroll="share">${ic("play", "sm")} Watch the video</button>
         </div>
-        <div class="ad-badges"><span>Free course</span><span>No account</span><span>Works on phone</span><span>British English</span></div>
+        <div class="ad-badges"><span>5 full timed tests</span><span>Live video classes</span><span>Works on phone</span><span>British English</span></div>
       </div>
-      <div class="ad-visual">${stampSVG("stampHero")}<div class="ad-phone"><div class="ad-screen"><b>Band 7.0</b><small>Overall score</small><div class="ad-bars"><i style="--h:70%"></i><i style="--h:82%"></i><i style="--h:60%"></i><i style="--h:75%"></i></div><span>L · R · W · S</span></div></div></div>
+      <div class="ad-visual">
+        <div class="ph-float ph-f1"><b>Band 7.0</b><span>Overall score</span></div>
+        <div class="ph-float ph-f2"><i class="ph-dot"></i><span>Live class · 17:00</span></div>
+        <div class="ph-float ph-f3"><b>✓</b><span>Writing corrected</span></div>
+        <div class="ad-phone">
+          <div class="ph-notch"></div>
+          <div class="ad-screen">
+            <div class="ph-status"><span>9:41</span><span class="ph-icons"><i></i><i></i><i></i></span></div>
+            <div class="ph-app"><span class="ph-logo">i</span><b>IELTS<em>Pro</em></b><span class="ph-live">● LIVE</span></div>
+            <div class="ph-video"><video id="heroVid" src="assets/ielts-pro-promo.mp4" poster="assets/ielts-pro-promo.jpg" autoplay muted loop playsinline preload="metadata" aria-label="IELTS Pro promotional video"></video>
+              <button class="ph-sound" id="heroSound" aria-label="Turn the sound on">🔇</button></div>
+            <div class="ph-card"><small>Your level</small><b>B2 · band 6.5</b><div class="ph-bar"><i></i></div><span>Target band 7.0</span></div>
+            <div class="ph-cta">Start my course →</div>
+          </div>
+          <div class="ph-shine"></div>
+        </div>
+      </div>
     </div>
   </section>
 
   <div class="wrap">
     <section class="ad-strip reveal">
-      ${[["21", "question placement test"], [String(exercises), "corrected exercises"], ["4", "free study books"], ["Free", "course · Premium optional"]].map(([n, l], i) => `<div style="--d:${i * .08}s"><b>${n}</b><span>${l}</span></div>`).join("")}
+      ${[["5", "full timed placement tests"], [String(exercises), "corrected exercises"], ["Live", "video classes with teachers"], ["4", "study books"]].map(([n, l], i) => `<div style="--d:${i * .08}s"><b>${n}</b><span>${l}</span></div>`).join("")}
     </section>
 
     <section class="sec ad-where">
       <div class="reveal from-left">
         <span class="eyebrow">Where it's made</span>
         <h2 class="h2-sec">From ${STUDIO.city} to the world</h2>
-        <p class="muted">${STUDIO.name} is a small studio based in <b>${STUDIO.city}</b> (${STUDIO.region}), in eastern Algeria. We built IELTS Pro because good IELTS preparation is often expensive and hard to find. Our goal: give every Algerian student a serious, free way to reach band 6.5 and 7 — the score most UK universities ask for.</p>
-        <ul class="ad-list"><li>Designed and developed in ${STUDIO.city}</li><li>Content written for IELTS Academic, in English</li><li>Open to everyone, everywhere, for free</li></ul>
+        <p class="muted">${STUDIO.name} is a small studio based in <b>${STUDIO.city}</b> (${STUDIO.region}), in eastern Algeria. We built IELTS Pro because good IELTS preparation is often expensive and hard to find. Our goal: give every Algerian student a serious, affordable way to reach band 6.5 and 7 — the score most UK universities ask for.</p>
+        <ul class="ad-list"><li>Designed and developed in ${STUDIO.city}</li><li>Content written for IELTS Academic, in English</li><li>Open to everyone, everywhere</li></ul>
         <a class="btn btn-ghost" href="${STUDIO.github}" target="_blank" rel="noopener">${STUDIO.name} on GitHub ${ic("arrow", "sm arrow")}</a>
       </div>
       <div class="ad-map reveal from-right">
@@ -2326,6 +2342,12 @@ function viewAbout() {
     </section>
   </div>`;
   drawPoster($("#poster"));
+  const hv = $("#heroVid"), hs = $("#heroSound");
+  if (hv && hs) {
+    if (matchMedia("(prefers-reduced-motion: reduce)").matches) hv.pause();
+    hs.onclick = () => { hv.muted = !hv.muted; if (!hv.muted) { hv.currentTime = 0; hv.play(); } hs.textContent = hv.muted ? "🔇" : "🔊"; hs.setAttribute("aria-label", hv.muted ? "Turn the sound on" : "Turn the sound off"); };
+    onLeave(() => hv.pause());
+  }
   const vid = $("#promoVid"), vt = $("#vidToggle");
   if (vid && vt) {
     vt.onclick = () => { if (vid.paused) { vid.play(); vt.textContent = "❚❚"; vt.setAttribute("aria-label", "Pause the video"); } else { vid.pause(); vt.textContent = "▶"; vt.setAttribute("aria-label", "Play the video"); } };
@@ -2925,6 +2947,7 @@ function googleSignIn(kind) {
       <p class="auth-msg" id="authMsg" role="status"></p>
       <p class="small muted">We only receive your name, email and profile photo from Google. We never see your Google password.</p>
       <p class="auth-switch">${kind === "signup" ? `Already have an account? <a href="#/login">Log in</a>` : `No account yet? <a href="#/signup">Create a free account</a> · <a href="#/signup" data-as-link="teacher">Sign up as a teacher</a>`}</p>
+      ${kind === "login" ? `<p class="small" style="margin:0"><a href="#/adminlogin" class="adm-link">Administrator? Log in with email and password →</a></p>` : ""}
     </div>`);
   $$("[data-as]").forEach(b => b.onclick = () => { S.signupAs = b.dataset.as; save(); googleSignIn("signup"); });
   $$("[data-as-link]").forEach(a => a.onclick = () => { S.signupAs = a.dataset.asLink; save(); });
@@ -2937,6 +2960,33 @@ function googleSignIn(kind) {
   });
 }
 const viewLogin = () => googleSignIn("login");
+// Connexion admin par e-mail + mot de passe
+function viewAdminLogin() {
+  if (isAdmin()) { location.hash = "#/admin"; return; }
+  app.innerHTML = `<div class="wrap auth-wrap"><div class="auth-card admin-login fade-in">
+    <aside class="auth-side"><img src="${photo("progress", 900)}" alt=""><div class="auth-side-in">
+      <span class="eyebrow" style="color:#fff">Solvarynlabs</span><h2>Administration</h2>
+      <ul><li>Students, teachers and payments</li><li>Activation codes</li><li>Live classes and corrections</li></ul></div></aside>
+    <section class="auth-main"><h1>Admin login</h1><p class="muted">Reserved for the IELTS Pro administrator.</p>
+      <form class="auth-form" id="admForm" autocomplete="on">
+        <label>Email<input name="email" type="email" required autocomplete="username" placeholder="admin@example.com"></label>
+        <label>Password<span class="pw-wrap"><input name="password" type="password" required autocomplete="current-password"><button type="button" class="pw-toggle" aria-label="Show password">Show</button></span></label>
+        <button class="btn btn-primary btn-lg" type="submit">Log in ${ic("arrow", "arrow")}</button>
+        <p class="auth-msg" id="authMsg" role="status"></p>
+        <p class="auth-switch"><a href="#/login">← Student or teacher login</a></p>
+      </form></section></div></div>`;
+  const f = $("#admForm");
+  $(".pw-toggle", f).onclick = e => { const i = e.target.previousElementSibling, show = i.type === "password"; i.type = show ? "text" : "password"; e.target.textContent = show ? "Hide" : "Show"; };
+  f.onsubmit = async e => {
+    e.preventDefault(); const d = new FormData(f), msg = $("#authMsg"), btn = $("button[type=submit]", f);
+    btn.disabled = true; msg.textContent = "Checking…"; msg.className = "auth-msg";
+    try {
+      const r = await api("adminPasswordLogin", { email: d.get("email"), password: d.get("password") });
+      lsSet(SESSION_KEY, r.session); setProfile(r.profile); mergeServerState(r.state, r.state_updated);
+      toast("Welcome, administrator"); updateTop(); location.hash = "#/admin";
+    } catch (err) { msg.textContent = err.message; msg.className = "auth-msg err"; btn.disabled = false; }
+  };
+}
 const viewSignup = () => googleSignIn("signup");
 const viewForgot = () => { location.hash = "#/login"; };
 
@@ -3083,12 +3133,12 @@ const CODE_TYPES = [
 ];
 function viewAdmin(p) {
   if (!isAdmin()) { app.innerHTML = `<div class="wrap" style="padding-top:40px"><div class="pm-lock"><h2>Admin only</h2><p class="muted">Log in with the administrator's Google account.</p><a class="btn btn-primary" href="#/login">Log in</a></div></div>`; return; }
-  const tab = ["users", "codes", "classes", "log"].includes(p) ? p : "users";
+  const tab = ["users", "codes", "classes", "log", "security"].includes(p) ? p : "users";
   app.innerHTML = `<div class="${S.level ? "" : "wrap"}" style="${S.level ? "" : "padding-top:30px;padding-bottom:60px"}">
     <section class="admin-head fade-in"><div><span class="eyebrow">Solvarynlabs · administration</span><h1>Admin dashboard</h1><p class="muted">Students, teachers, payments, codes and classes in one place.</p></div>
       <div class="row"><a class="btn btn-ghost btn-sm" href="#/teach">Teacher space</a><a class="btn btn-ghost btn-sm" href="#/dashboard">Student view</a></div></section>
     <div class="admin-stats" id="aStats"><p class="muted">Loading…</p></div>
-    <div class="tabs admin-tabs">${[["users", "Users"], ["codes", "Activation codes"], ["classes", "Live classes"], ["log", "Payments log"]].map(([k, l]) => `<button data-atab="${k}" class="${tab === k ? "active" : ""}">${l}</button>`).join("")}</div>
+    <div class="tabs admin-tabs">${[["users", "Users"], ["codes", "Activation codes"], ["classes", "Live classes"], ["log", "Payments log"], ["security", "Password"]].map(([k, l]) => `<button data-atab="${k}" class="${tab === k ? "active" : ""}">${l}</button>`).join("")}</div>
     <div id="aBody"><p class="muted">Loading…</p></div>
   </div>`;
   $$("[data-atab]").forEach(b => b.onclick = () => { location.hash = "#/admin/" + b.dataset.atab; });
@@ -3103,6 +3153,7 @@ function viewAdmin(p) {
   if (tab === "users") adminUsers(body);
   else if (tab === "codes") adminCodes(body);
   else if (tab === "classes") adminClasses(body);
+  else if (tab === "security") adminSecurity(body);
   else adminLog(body);
 }
 function adminUsers(body, search = "", roleF = "") {
@@ -3174,6 +3225,20 @@ function adminCodes(body) {
     } catch (err) { out.innerHTML = `<p class="pm-err small">${esc(err.message)}</p>`; }
   };
 }
+function adminSecurity(body) {
+  body.innerHTML = `<form class="card a-edit" id="aPw" style="max-width:520px"><h3>Change the admin password</h3>
+    <p class="muted small">At least 10 characters, with letters and numbers. You stay logged in on this device.</p>
+    <label>Current password<input name="current" type="password" required autocomplete="current-password"></label>
+    <label>New password<input name="newPassword" type="password" required minlength="10" autocomplete="new-password"></label>
+    <label>Repeat the new password<input name="again" type="password" required minlength="10" autocomplete="new-password"></label>
+    <div class="row"><button class="btn btn-primary">Change the password</button><span class="small" id="aPwMsg"></span></div></form>`;
+  $("#aPw").onsubmit = async e => {
+    e.preventDefault(); const f = new FormData(e.target), msg = $("#aPwMsg");
+    if (f.get("newPassword") !== f.get("again")) { msg.textContent = "The two new passwords are different."; msg.className = "small pm-err"; return; }
+    try { await api("adminSetPassword", { current: f.get("current"), newPassword: f.get("newPassword") }); e.target.reset(); msg.textContent = "Password changed."; msg.className = "small ok-txt"; }
+    catch (err) { msg.textContent = err.message; msg.className = "small pm-err"; }
+  };
+}
 function adminClasses(body) {
   api("adminBookings").then(({ bookings }) => {
     body.innerHTML = bookings.length ? `<div class="a-table-wrap"><table class="a-table"><thead><tr><th>Date</th><th>Student</th><th>Teacher</th><th>Topic</th><th>Status</th><th>Room</th></tr></thead><tbody>
@@ -3194,7 +3259,7 @@ function adminLog(body) {
    ========================================================= */
 const ROUTES = {
   "": viewHome, test: viewTest, result: viewResult,
-  dashboard: viewDashboard, grammar: viewGrammar, vocab: p => viewVocab(p, "cards"), toolkit: viewToolkit, books: viewBooks, book: viewBook, about: viewAbout, premium: viewPremium, plans: viewPlans, live: viewLive, owner: viewOwner, teach: viewTeach, admin: viewAdmin, teacher: viewTeacher, login: viewLogin, signup: viewSignup, forgot: viewForgot, account: viewAccount,
+  dashboard: viewDashboard, grammar: viewGrammar, vocab: p => viewVocab(p, "cards"), toolkit: viewToolkit, books: viewBooks, book: viewBook, about: viewAbout, premium: viewPremium, plans: viewPlans, live: viewLive, owner: viewOwner, teach: viewTeach, admin: viewAdmin, adminlogin: viewAdminLogin, teacher: viewTeacher, login: viewLogin, signup: viewSignup, forgot: viewForgot, account: viewAccount,
   reading: viewReading, listening: viewListening, writing: viewWriting, speaking: p => viewSpeaking(p, "2"), progress: viewProgress
 };
 const NEEDS_LEVEL = ["toolkit", "dashboard", "grammar", "vocab", "reading", "listening", "writing", "speaking", "progress"];
@@ -3207,7 +3272,7 @@ function render() {
   // Parcours : compte Google → choix de l'offre → test de niveau → préparation de son niveau
   const needsTest = ["test", "result"].includes(r), needsPrep = NEEDS_LEVEL.includes(r) || ["books", "book"].includes(r);
   if (S.ownerTest && !fbUser) fbUser = { uid: "owner-test", displayName: "Owner Test", email: "", photoURL: "" };
-  if (["teach", "admin"].includes(r) && !PROFILE) { if (r === "teach") { S.signupAs = "teacher"; toast("Create your teacher account"); location.hash = "#/signup"; } else { toast("Log in first"); location.hash = "#/login"; } return; }
+  if (["teach", "admin"].includes(r) && !PROFILE) { if (r === "teach") { S.signupAs = "teacher"; toast("Create your teacher account"); location.hash = "#/signup"; } else { location.hash = "#/adminlogin"; } return; }
   if (r === "live" && !fbUser) { toast("Create your free account first"); location.hash = "#/signup"; return; }
   if ((needsTest || needsPrep) && !fbUser) { toast("Create your free account first"); location.hash = "#/signup"; return; }
   if (needsTest && planRank() < 1 && !isTeacherAcc()) { toast("Choose a plan to take the test"); location.hash = "#/plans"; return; }

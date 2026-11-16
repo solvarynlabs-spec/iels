@@ -58,6 +58,25 @@ async function adminEmails(): Promise<string[]> {
   const { data } = await db.from("settings").select("value").eq("key", "admin_emails").maybeSingle();
   return (data?.value || []).map((e: string) => e.toLowerCase());
 }
+// Mot de passe admin : PBKDF2-SHA256, format pbkdf2$iterations$sel$empreinte (base64)
+async function pbkdf2(password: string, salt: Uint8Array, iterations: number) {
+  const k = await crypto.subtle.importKey("raw", enc.encode(password), "PBKDF2", false, ["deriveBits"]);
+  return new Uint8Array(await crypto.subtle.deriveBits({ name: "PBKDF2", salt, iterations, hash: "SHA-256" }, k, 256));
+}
+const b64 = (u: Uint8Array) => btoa(String.fromCharCode(...u));
+const unb64 = (s: string) => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+async function checkPassword(password: string, rec: string) {
+  const [, it, salt, hash] = String(rec).split("$");
+  const got = await pbkdf2(password, unb64(salt), Number(it));
+  const want = unb64(hash);
+  if (got.length !== want.length) return false;
+  let d = 0; for (let i = 0; i < got.length; i++) d |= got[i] ^ want[i];
+  return d === 0;
+}
+async function makePasswordRecord(password: string) {
+  const salt = crypto.getRandomValues(new Uint8Array(16)), it = 150000;
+  return `pbkdf2$${it}$${b64(salt)}$${b64(await pbkdf2(password, salt, it))}`;
+}
 const stateSummary = (st: any) => st ? { level: st.level || null, band: st.placement?.band ?? null, xp: st.xp || 0, fullTests: Object.keys(st.fullTests || {}).length, lastTest: st.placement?.date || null } : null;
 
 /* ---------- actions ---------- */
@@ -80,6 +99,39 @@ const actions: Record<string, (c: Ctx) => Promise<unknown>> = {
     const { data, error } = await db.from("profiles").upsert(row).select("*").single();
     if (error) fail(500, error.message);
     return { session: await makeSession(g.sub), profile: publicProfile(data), state: data.state, state_updated: data.state_updated, isNew: !existing };
+  },
+
+  async adminPasswordLogin({ body }) {
+    const email = clean(body.email, 200).trim().toLowerCase(), password = clean(body.password, 200);
+    const since = new Date(Date.now() - 15 * 60000).toISOString();
+    const { count } = await db.from("login_attempts").select("*", { count: "exact", head: true }).eq("email", email).eq("ok", false).gte("at", since);
+    if ((count || 0) >= 5) fail(429, "Too many wrong attempts. Wait 15 minutes and try again.");
+    const { data: st } = await db.from("settings").select("value").eq("key", "admin_password").maybeSingle();
+    const ok = !!st && st.value.email === email && await checkPassword(password, st.value.hash);
+    await db.from("login_attempts").insert({ email, ok });
+    if (!ok) fail(401, "Wrong email or password.");
+    // le compte admin : celui qui a cet e-mail (connexion Google) ou un compte admin dédié
+    const { data: found } = await db.from("profiles").select("*").eq("email", email).limit(1);
+    let prof = found && found[0];
+    if (!prof) {
+      const { data } = await db.from("profiles").insert({ id: "admin:" + email, email, name: "Administrator", role: "admin" }).select("*").single();
+      prof = data;
+    } else if (prof.role !== "admin") {
+      const { data } = await db.from("profiles").update({ role: "admin" }).eq("id", prof.id).select("*").single();
+      prof = data;
+    }
+    await db.from("profiles").update({ last_seen: new Date().toISOString() }).eq("id", prof.id);
+    return { session: await makeSession(prof.id), profile: publicProfile(prof), state: prof.state, state_updated: prof.state_updated };
+  },
+
+  async adminSetPassword({ uid, body }) {
+    const p = await requireAdmin(uid!);
+    const { data: st } = await db.from("settings").select("value").eq("key", "admin_password").maybeSingle();
+    if (!st || !(await checkPassword(clean(body.current, 200), st.value.hash))) fail(400, "Your current password is wrong.");
+    const np = clean(body.newPassword, 200);
+    if (np.length < 10 || !/[A-Za-z]/.test(np) || !/\d/.test(np)) fail(400, "Choose a password with at least 10 characters, letters and numbers.");
+    await db.from("settings").update({ value: { email: st.value.email, hash: await makePasswordRecord(np) } }).eq("key", "admin_password");
+    return { ok: true, email: p.email };
   },
 
   async me({ uid }) {
@@ -319,7 +371,7 @@ Deno.serve(async req => {
     const fn = actions[body.action];
     if (!fn) fail(404, "Unknown action");
     const uid = await readSession(req.headers.get("x-session"));
-    if (body.action !== "login" && !uid) fail(401, "Please log in again.");
+    if (!["login", "adminPasswordLogin"].includes(body.action) && !uid) fail(401, "Please log in again.");
     return json(200, await fn({ uid, body }));
   } catch (e) {
     if (e instanceof HttpError) return json(e.status, { error: e.message });
