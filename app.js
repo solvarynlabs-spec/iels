@@ -2499,6 +2499,14 @@ function viewPlans(p) {
     e.preventDefault();
     const code = $("#codeIn").value.trim().toUpperCase().replace(/\s+/g, "");
     const msg = $("#codeMsg");
+    if (/^SOLV-\d{6}$/.test(code)) {
+      let oh = ""; try { oh = await sha256Hex(code); } catch { }
+      if (typeof OWNER_PIN_HASH !== "undefined" && oh === OWNER_PIN_HASH) {
+        S.ownerTest = { since: new Date().toISOString() }; const LS = liveState(); if (LS.credits < 10) LS.credits = 10;
+        save(); toast("Test mode ON — everything is unlocked on this device"); location.hash = "#/owner"; return;
+      }
+      msg.textContent = "Wrong owner PIN."; msg.className = "small pm-err"; return;
+    }
     if (!/^(IELTS|LIVE)-[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(code)) { msg.textContent = "The code should look like IELTS-XXXX-XXXX or LIVE-XXXX-XXXX."; msg.className = "small pm-err"; return; }
     let h; try { h = await sha256Hex(code); } catch { msg.textContent = "Activation needs a secure connection (https)."; msg.className = "small pm-err"; return; }
     const pk = LIVE_LIST.find(x => (x.codeHashes || []).includes(h));
