@@ -2524,79 +2524,54 @@ function viewTeacher(p) {
 }
 
 
-/* ---------------- Comptes élèves (Firebase Authentication + Firestore) ---------------- */
-const FB_ON = typeof FIREBASE_CONFIG !== "undefined" && !!FIREBASE_CONFIG.apiKey;
-const FB_VERSION = "10.12.2";
-let fbReady = null, fbUser = null, cloudTimer = null, lastSync = null;
+/* ---------------- Comptes élèves (Google Cloud : « Se connecter avec Google ») ----------------
+   Seul l'ID client OAuth (public) est utilisé. Le code secret du client n'est jamais mis dans le site. */
+const G_ON = typeof GOOGLE_CLIENT_ID !== "undefined" && /\.apps\.googleusercontent\.com$/.test(GOOGLE_CLIENT_ID);
+const USER_KEY = KEY + ":google-user";
+let fbUser = (() => { try { return JSON.parse(localStorage.getItem(USER_KEY)) || null; } catch { return null; } })();
+let gReady = null;
 const currentRoute = () => location.hash.replace(/^#\/?/, "").split("/")[0];
+const userStateKey = u => KEY + ":user:" + u.uid;
 
 function loadScript(src) {
-  return new Promise((res, rej) => { const s = document.createElement("script"); s.src = src; s.onload = res; s.onerror = () => rej(new Error("Could not load " + src)); document.head.appendChild(s); });
+  return new Promise((res, rej) => { const s = document.createElement("script"); s.src = src; s.async = true; s.onload = res; s.onerror = () => rej(new Error("Could not load " + src)); document.head.appendChild(s); });
 }
-function initFirebase() {
-  if (!FB_ON) return Promise.resolve(null);
-  if (fbReady) return fbReady;
-  const base = `https://www.gstatic.com/firebasejs/${FB_VERSION}/`;
-  fbReady = loadScript(base + "firebase-app-compat.js")
-    .then(() => Promise.all([loadScript(base + "firebase-auth-compat.js"), loadScript(base + "firebase-firestore-compat.js")]))
-    .then(() => {
-      firebase.initializeApp(FIREBASE_CONFIG);
-      firebase.auth().onAuthStateChanged(async u => {
-        fbUser = u;
-        if (u) await pullCloud(u);
-        updateTop();
-        const r = currentRoute();
-        if (u && ["login", "signup", "forgot"].includes(r)) location.hash = "#/account";
-        else if (r === "account") render();
-      });
-      return firebase;
-    })
-    .catch(e => { console.warn(e); fbReady = null; return null; });
-  return fbReady;
+function initGoogle() {
+  if (!G_ON) return Promise.resolve(null);
+  if (gReady) return gReady;
+  gReady = loadScript("https://accounts.google.com/gsi/client").then(() => {
+    google.accounts.id.initialize({ client_id: GOOGLE_CLIENT_ID, callback: onGoogleCredential, auto_select: false, ux_mode: "popup" });
+    return google;
+  }).catch(e => { console.warn(e); gReady = null; return null; });
+  return gReady;
 }
-const userDoc = u => firebase.firestore().collection("users").doc(u.uid);
-
-// Récupère la progression en ligne ; la version la plus récente l'emporte
-async function pullCloud(u) {
+// Lit le jeton d'identité renvoyé par Google (nom, e-mail, photo)
+function decodeJwt(t) {
+  const b = t.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
+  const bin = atob(b + "===".slice((b.length + 3) % 4));
+  return JSON.parse(new TextDecoder().decode(Uint8Array.from(bin, c => c.charCodeAt(0))));
+}
+function onGoogleCredential(resp) {
+  let p; try { p = decodeJwt(resp.credential); } catch { toast("Google sign-in failed. Please try again."); return; }
+  fbUser = { uid: p.sub, displayName: p.name || "", email: p.email || "", photoURL: p.picture || "" };
+  try { localStorage.setItem(USER_KEY, JSON.stringify(fbUser)); } catch { }
+  // Si ce compte a déjà une progression plus récente sur cet appareil, on la reprend
   try {
-    const d = await userDoc(u).get();
-    const remote = d.exists && d.data().state ? JSON.parse(d.data().state) : null;
-    if (remote && (remote.updatedAt || 0) > (S.updatedAt || 0)) {
-      const theme = S.theme;
-      S = Object.assign(defaults(), remote); S.theme = theme || S.theme;
-      try { localStorage.setItem(KEY, JSON.stringify(S)); } catch { }
-      lastSync = new Date(); applyTheme(); render(); toast("Your progress was loaded from your account");
-    } else { await pushCloud(); }
-  } catch (e) { console.warn("Sync failed", e); }
+    const saved = JSON.parse(localStorage.getItem(userStateKey(fbUser)));
+    if (saved && (saved.updatedAt || 0) > (S.updatedAt || 0)) { const theme = S.theme; S = Object.assign(defaults(), saved); S.theme = theme || S.theme; applyTheme(); }
+  } catch { }
+  save();
+  toast(`Welcome, ${(fbUser.displayName || "student").split(" ")[0]}!`);
+  updateTop();
+  location.hash = S.level ? "#/dashboard" : "#/account";
 }
-async function pushCloud() {
-  if (!fbUser) return;
-  try {
-    await userDoc(fbUser).set({ state: JSON.stringify(S), updatedAt: S.updatedAt || Date.now(), name: fbUser.displayName || "", email: fbUser.email || "" }, { merge: true });
-    lastSync = new Date();
-  } catch (e) { console.warn("Sync failed", e); }
-}
-function scheduleCloud() { if (!fbUser) return; clearTimeout(cloudTimer); cloudTimer = setTimeout(pushCloud, 1500); }
+// Garde une copie de la progression liée au compte Google
+function scheduleCloud() { if (!fbUser) return; try { localStorage.setItem(userStateKey(fbUser), JSON.stringify(S)); } catch { } }
 
-const AUTH_ERRORS = {
-  "auth/email-already-in-use": "An account already exists with this email. Log in instead.",
-  "auth/invalid-email": "This email address is not valid.",
-  "auth/weak-password": "Choose a stronger password (at least 8 characters).",
-  "auth/wrong-password": "Email or password is incorrect.",
-  "auth/user-not-found": "Email or password is incorrect.",
-  "auth/invalid-credential": "Email or password is incorrect.",
-  "auth/invalid-login-credentials": "Email or password is incorrect.",
-  "auth/too-many-requests": "Too many attempts. Wait a few minutes and try again.",
-  "auth/popup-closed-by-user": "The Google window was closed before signing in.",
-  "auth/popup-blocked": "Your browser blocked the Google window. Allow pop-ups and try again.",
-  "auth/network-request-failed": "No internet connection. Check your connection and try again.",
-  "auth/unauthorized-domain": "This website is not yet authorised in Firebase (add the domain in Authentication settings)."
-};
-const authMsg = e => AUTH_ERRORS[e && e.code] || "Something went wrong. Please try again.";
 const initials = name => (name || "?").trim().split(/\s+/).map(w => w[0]).slice(0, 2).join("").toUpperCase();
 
 function authShell(kind, title, sub, formHtml) {
-  const perks = ["Your progress saved online", "Continue on phone and computer", "Your Premium on every device", "Free — no payment needed to sign up"];
+  const perks = ["One click with your Google account", "No new password to remember", "Your level and scores linked to your account", "Free — no payment needed to sign up"];
   return `<div class="wrap auth-wrap">
     <div class="auth-card fade-in">
       <aside class="auth-side">
@@ -2609,125 +2584,59 @@ function authShell(kind, title, sub, formHtml) {
         </div>
       </aside>
       <section class="auth-main">
-        ${FB_ON ? "" : `<div class="auth-off"><b>Accounts are coming soon.</b> You can already use the whole site without an account; your progress is saved in this browser.</div>`}
+        ${G_ON ? "" : `<div class="auth-off"><b>Accounts are coming soon.</b> You can already use the whole site without an account; your progress is saved in this browser.</div>`}
         <h1>${title}</h1><p class="muted">${sub}</p>
         ${formHtml}
       </section>
     </div>
   </div>`;
 }
-const googleBtn = () => `<button type="button" class="btn-google" id="googleBtn"><svg viewBox="0 0 48 48" width="20" height="20" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.6l6.7-6.7C35.6 2.5 30.2 0 24 0 14.6 0 6.6 5.4 2.7 13.2l7.8 6C12.4 13.4 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.5 5.8c4.4-4.1 7.1-10.1 7.1-17.5z"/><path fill="#FBBC05" d="M10.5 28.8c-.5-1.4-.8-3-.8-4.8s.3-3.3.8-4.8l-7.8-6C1 16.6 0 20.2 0 24s1 7.4 2.7 10.8l7.8-6z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.5-5.8c-2.1 1.4-4.8 2.3-8.4 2.3-6.3 0-11.6-3.9-13.5-9.7l-7.8 6C6.6 42.6 14.6 48 24 48z"/></svg>Continue with Google</button>`;
-const pwField = (name, label, auto) => `<label>${label}<span class="pw-wrap"><input name="${name}" type="password" required minlength="8" autocomplete="${auto}"><button type="button" class="pw-toggle" aria-label="Show password">Show</button></span></label>`;
-
-function bindAuthCommon(form) {
-  $$(".pw-toggle", form).forEach(b => b.onclick = () => { const i = b.previousElementSibling; const show = i.type === "password"; i.type = show ? "text" : "password"; b.textContent = show ? "Hide" : "Show"; });
-  const g = $("#googleBtn");
-  if (g) g.onclick = async () => {
-    const msg = $("#authMsg", form);
-    if (!FB_ON) { msg.textContent = "Accounts are not activated on this site yet."; msg.className = "auth-msg err"; return; }
-    try { await initFirebase(); g.disabled = true; await firebase.auth().signInWithPopup(new firebase.auth.GoogleAuthProvider()); }
-    catch (e) { msg.textContent = authMsg(e); msg.className = "auth-msg err"; g.disabled = false; }
-  };
-}
-async function runAuth(form, action) {
-  const msg = $("#authMsg", form), btn = $("button[type=submit]", form);
-  if (!FB_ON) { msg.textContent = "Accounts are not activated on this site yet. You can keep studying without an account."; msg.className = "auth-msg err"; return; }
-  btn.disabled = true; msg.textContent = "Please wait…"; msg.className = "auth-msg";
-  try { await initFirebase(); await action(); }
-  catch (e) { msg.textContent = authMsg(e); msg.className = "auth-msg err"; }
-  finally { btn.disabled = false; }
-}
-
-function viewLogin() {
-  app.innerHTML = authShell("login", "Log in", "Log in to find your level, scores and Premium on any device.", `
-    <form class="auth-form" id="loginForm" novalidate>
-      ${googleBtn()}
-      <div class="auth-or"><span>or with your email</span></div>
-      <label>Email<input name="email" type="email" required autocomplete="email" placeholder="you@example.com"></label>
-      ${pwField("password", "Password", "current-password")}
-      <div class="auth-row"><a href="#/forgot">Forgot password?</a></div>
-      <button class="btn btn-primary btn-lg" type="submit">Log in ${ic("arrow", "arrow")}</button>
+function googleSignIn(kind) {
+  app.innerHTML = authShell(kind, kind === "signup" ? "Create your account" : "Log in",
+    kind === "signup" ? "Free. Use your Google account: it takes 10 seconds." : "Log in with your Google account to find your level and scores.", `
+    <div class="auth-form">
+      <div id="gBtn" class="g-btn-slot"><div class="muted small">Loading Google sign-in…</div></div>
       <p class="auth-msg" id="authMsg" role="status"></p>
-      <p class="auth-switch">No account yet? <a href="#/signup">Create a free account</a></p>
-    </form>`);
-  const f = $("#loginForm"); bindAuthCommon(f);
-  f.onsubmit = e => { e.preventDefault(); const d = new FormData(f); runAuth(f, () => firebase.auth().signInWithEmailAndPassword(d.get("email").trim(), d.get("password"))); };
+      <p class="small muted">We only receive your name, email and profile photo from Google. We never see your Google password.</p>
+      <p class="auth-switch">${kind === "signup" ? `Already have an account? <a href="#/login">Log in</a>` : `No account yet? <a href="#/signup">Create a free account</a>`}</p>
+    </div>`);
+  if (!G_ON) { $("#gBtn").innerHTML = ""; return; }
+  initGoogle().then(g => {
+    const slot = $("#gBtn"); if (!slot) return;
+    if (!g) { slot.innerHTML = ""; const m = $("#authMsg"); m.textContent = "Google sign-in could not load. Check your connection and reload the page."; m.className = "auth-msg err"; return; }
+    slot.innerHTML = "";
+    google.accounts.id.renderButton(slot, { type: "standard", theme: document.documentElement.dataset.theme === "dark" ? "filled_black" : "outline", size: "large", text: kind === "signup" ? "signup_with" : "continue_with", shape: "pill", width: Math.min(360, slot.clientWidth || 360), locale: "en" });
+  });
 }
-
-function viewSignup() {
-  app.innerHTML = authShell("signup", "Create your account", "Free. It takes 30 seconds and keeps your progress safe.", `
-    <form class="auth-form" id="signupForm" novalidate>
-      ${googleBtn()}
-      <div class="auth-or"><span>or with your email</span></div>
-      <label>Full name<input name="name" required minlength="2" autocomplete="name" placeholder="First name and last name"></label>
-      <label>Email<input name="email" type="email" required autocomplete="email" placeholder="you@example.com"></label>
-      ${pwField("password", "Password (8+ characters)", "new-password")}
-      <div class="pw-meter"><i id="pwBar"></i></div><small class="muted" id="pwHint">Use 8+ characters with letters and numbers.</small>
-      ${pwField("confirm", "Confirm password", "new-password")}
-      <label class="auth-check"><input type="checkbox" name="agree" required> I agree that my progress is stored in my IELTS Pro account.</label>
-      <button class="btn btn-primary btn-lg" type="submit">Create my account ${ic("arrow", "arrow")}</button>
-      <p class="auth-msg" id="authMsg" role="status"></p>
-      <p class="auth-switch">Already have an account? <a href="#/login">Log in</a></p>
-    </form>`);
-  const f = $("#signupForm"); bindAuthCommon(f);
-  const pw = f.querySelector("[name=password]");
-  pw.oninput = () => {
-    const v = pw.value; let sc = 0;
-    if (v.length >= 8) sc++; if (/[A-Z]/.test(v) && /[a-z]/.test(v)) sc++; if (/\d/.test(v)) sc++; if (/[^A-Za-z0-9]/.test(v) || v.length >= 12) sc++;
-    $("#pwBar").style.width = sc * 25 + "%"; $("#pwBar").style.background = ["var(--bad)", "var(--bad)", "var(--warn)", "var(--good)", "var(--good)"][sc];
-    $("#pwHint").textContent = ["Too short", "Weak", "Fair", "Good", "Strong"][sc] + " password";
-  };
-  f.onsubmit = e => {
-    e.preventDefault(); const d = new FormData(f), msg = $("#authMsg");
-    const name = d.get("name").trim(), email = d.get("email").trim(), p1 = d.get("password"), p2 = d.get("confirm");
-    if (name.length < 2) { msg.textContent = "Enter your full name."; msg.className = "auth-msg err"; return; }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { msg.textContent = "This email address is not valid."; msg.className = "auth-msg err"; return; }
-    if (p1.length < 8) { msg.textContent = "Your password needs at least 8 characters."; msg.className = "auth-msg err"; return; }
-    if (p1 !== p2) { msg.textContent = "The two passwords are different."; msg.className = "auth-msg err"; return; }
-    if (!d.get("agree")) { msg.textContent = "Please tick the box to continue."; msg.className = "auth-msg err"; return; }
-    runAuth(f, async () => {
-      const cred = await firebase.auth().createUserWithEmailAndPassword(email, p1);
-      await cred.user.updateProfile({ displayName: name });
-      fbUser = firebase.auth().currentUser; await pushCloud(); toast(`Welcome, ${name.split(" ")[0]}!`);
-    });
-  };
-}
-
-function viewForgot() {
-  app.innerHTML = authShell("login", "Reset your password", "Enter your email: we send you a link to choose a new password.", `
-    <form class="auth-form" id="forgotForm" novalidate>
-      <label>Email<input name="email" type="email" required autocomplete="email" placeholder="you@example.com"></label>
-      <button class="btn btn-primary btn-lg" type="submit">Send the reset link</button>
-      <p class="auth-msg" id="authMsg" role="status"></p>
-      <p class="auth-switch"><a href="#/login">← Back to log in</a></p>
-    </form>`);
-  const f = $("#forgotForm");
-  f.onsubmit = e => { e.preventDefault(); const email = new FormData(f).get("email").trim();
-    runAuth(f, async () => { await firebase.auth().sendPasswordResetEmail(email); const m = $("#authMsg"); m.textContent = "Done! Check your inbox (and spam folder) for the reset link."; m.className = "auth-msg ok"; }); };
-}
+const viewLogin = () => googleSignIn("login");
+const viewSignup = () => googleSignIn("signup");
+const viewForgot = () => { location.hash = "#/login"; };
 
 function viewAccount() {
-  if (!FB_ON || !fbUser) {
-    if (FB_ON && !fbReady) initFirebase();
-    app.innerHTML = `<div class="${S.level ? "" : "wrap"}" style="padding-top:30px"><div class="pm-lock"><h2>You are not logged in</h2><p class="muted">Log in to save your progress online and use it on all your devices.</p><div class="row" style="justify-content:center"><a class="btn btn-primary" href="#/login">Log in</a><a class="btn btn-ghost" href="#/signup">Create an account</a></div></div></div>`;
+  if (!fbUser) {
+    app.innerHTML = `<div class="${S.level ? "" : "wrap"}" style="padding-top:30px"><div class="pm-lock"><h2>You are not logged in</h2><p class="muted">Log in with Google to link your level and scores to your account.</p><div class="row" style="justify-content:center"><a class="btn btn-primary" href="#/login">Log in with Google</a></div></div></div>`;
     return;
   }
   const L = lvl(), name = fbUser.displayName || fbUser.email;
   app.innerHTML = `<div class="${S.level ? "" : "wrap"}" style="${S.level ? "" : "padding-top:30px;padding-bottom:60px"}">
     <section class="acc-head fade-in">
-      <div class="acc-avatar">${fbUser.photoURL ? `<img src="${fbUser.photoURL}" alt="">` : initials(name)}</div>
-      <div><span class="eyebrow">My account</span><h1>${esc(name)}</h1><p class="muted">${esc(fbUser.email || "")}</p></div>
+      <div class="acc-avatar">${fbUser.photoURL ? `<img src="${esc(fbUser.photoURL)}" alt="" referrerpolicy="no-referrer">` : initials(name)}</div>
+      <div><span class="eyebrow">My account · Google</span><h1>${esc(name)}</h1><p class="muted">${esc(fbUser.email || "")}</p></div>
       <div class="spacer"></div><button class="btn btn-ghost" id="logout">Log out</button>
     </section>
     <div class="grid grid-3" style="margin-top:20px">
       <div class="card acc-stat"><small>Level</small><b>${L ? L.id + " · " + L.name : "Not tested yet"}</b>${L ? `<a href="#/dashboard">Open my dashboard →</a>` : `<a href="#/test">Take the placement test →</a>`}</div>
       <div class="card acc-stat"><small>Premium</small><b>${isPremium() ? "Active ✓" : "Not active"}</b><a href="#/premium">${isPremium() ? "Teacher correction →" : "See Premium →"}</a></div>
-      <div class="card acc-stat"><small>Online backup</small><b id="syncTxt">${lastSync ? "Saved " + lastSync.toLocaleTimeString("en-GB") : "Ready"}</b><button class="link-btn" id="syncNow">Save now</button></div>
+      <div class="card acc-stat"><small>Full tests taken</small><b>${Object.keys(S.fullTests || {}).length} / 5</b><a href="#/test">See the tests →</a></div>
     </div>
-    <p class="small muted" style="margin-top:16px">Your level, scores, reading list and Premium are saved in your account automatically and loaded on any device where you log in.</p>
+    <p class="small muted" style="margin-top:16px">Your progress is saved on this device and linked to your Google account.</p>
   </div>`;
-  $("#logout").onclick = async () => { await pushCloud(); await firebase.auth().signOut(); fbUser = null; toast("You are logged out"); location.hash = "#/"; };
-  $("#syncNow").onclick = async () => { await pushCloud(); $("#syncTxt").textContent = "Saved " + new Date().toLocaleTimeString("en-GB"); toast("Progress saved to your account"); };
+  $("#logout").onclick = () => {
+    scheduleCloud();
+    try { localStorage.removeItem(USER_KEY); } catch { }
+    if (window.google && google.accounts) google.accounts.id.disableAutoSelect();
+    fbUser = null; toast("You are logged out"); location.hash = "#/";
+  };
 }
 
 /* =========================================================
@@ -2771,5 +2680,4 @@ document.addEventListener("keydown", e => {
 
 window.addEventListener("hashchange", render);
 applyTheme();
-initFirebase();
 render();

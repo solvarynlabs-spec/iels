@@ -27,20 +27,10 @@ const PREMIUM_CONFIG = {
 };
 
 /* =========================================================
-   COMPTES ÉLÈVES (Firebase — gratuit)
-   1. Va sur https://console.firebase.google.com et crée un projet.
-   2. Ajoute une « application Web » (icône </>) et copie l'objet firebaseConfig.
-   3. Colle les valeurs ci-dessous (ces valeurs sont publiques, ce n'est pas un mot de passe).
-   4. Dans Authentication, active « Adresse e-mail/Mot de passe » et « Google ».
-   5. Dans Authentication > Paramètres > Domaines autorisés, ajoute : solvarynlabs-spec.github.io
-   6. Crée une base Firestore et colle les règles du fichier firestore.rules.
-   Tant que apiKey est vide, les pages de connexion s'affichent mais les comptes sont désactivés.
+   COMPTES ÉLÈVES (Google Cloud — « Se connecter avec Google »)
+   ID client OAuth créé dans console.cloud.google.com > API et services > Identifiants.
+   Il est public : on peut le publier sans risque.
+   Ne mets JAMAIS ici le « code secret du client » (GOCSPX-…).
+   Origines JavaScript autorisées : https://solvarynlabs-spec.github.io et http://localhost:8080
    ========================================================= */
-const FIREBASE_CONFIG = {
-  apiKey: "",
-  authDomain: "",
-  projectId: "",
-  storageBucket: "",
-  messagingSenderId: "",
-  appId: ""
-};
+const GOOGLE_CLIENT_ID = "244682237571-eoe9ni7aobshloth5c1ss3kdlvnphtat.apps.googleusercontent.com";

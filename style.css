@@ -1322,3 +1322,5 @@ a.avatar { text-decoration: none; display: grid !important; }
 .wr-fb { list-style: none; padding: 0; margin: 18px 0 0; display: grid; gap: 8px; }
 .wr-fb li { display: flex; gap: 10px; padding: 10px 12px; background: var(--surface-2); }
 @media (max-width: 600px) { .wr-result .row { flex-direction: column; } }
+
+.g-btn-slot { min-height: 44px; display: flex; align-items: center; }
